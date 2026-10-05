@@ -1,0 +1,1967 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Sprung">
+<meta name="theme-color" content="#F2F4F5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1A23" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<title>Sprung</title>
+<style>
+:root{
+  --paper:#F2F4F5; --surface:#FFFFFF; --ink:#000000; --muted:#55606A; --rule:#C7CFD6;
+  --signal:#FAD201; --blue:#0A5A9C; --on-blue:#FFFFFF; --red:#C8102E; --green:#00804A;
+  --ok-bg:#E2F2E8; --bad-bg:#FBE6E9; --near-bg:#FFF5C7;
+  --display:"DIN Condensed","Bahnschrift SemiBold Condensed","Bahnschrift","Arial Narrow",sans-serif;
+  --din:"DIN Alternate","Bahnschrift","Arial",sans-serif;
+  --text:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,Roboto,sans-serif;
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#0E1A23; --surface:#152530; --ink:#F2F4F5; --muted:#9DAEBA; --rule:#2C3F4C;
+    --blue:#5AA6E6; --on-blue:#04131F; --red:#FF6B5E; --green:#45C97F;
+    --ok-bg:#123222; --bad-bg:#3A1619; --near-bg:#36320F;
+  }
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.5 var(--text);-webkit-font-smoothing:antialiased}
+#app{max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 14px) 18px calc(env(safe-area-inset-bottom,0px) + 96px)}
+h1,h2,p,ol,ul,dl,dd,blockquote{margin:0}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* header: yellow place-name sign + 30-stop line */
+.top{display:flex;align-items:center;gap:14px}
+.plate{background:var(--signal);color:#000;border:3px solid var(--signal);box-shadow:inset 0 0 0 2px #000;border-radius:6px;padding:9px 14px 7px;line-height:1}
+.plate-tag{display:block;font:700 34px/.9 var(--display)}
+.plate-of{display:block;font:600 13px/1.2 var(--din);margin-top:3px}
+.top-meta{display:flex;flex-direction:column;gap:2px;font:600 15px/1.3 var(--din)}
+.streak{color:var(--muted);font-weight:500}
+.linie{display:block;width:100%;height:auto;margin:12px 0 22px}
+.ln-rest{stroke:var(--rule);stroke-width:3}
+.ln-done{stroke:var(--ink);stroke-width:3}
+.st-done{fill:var(--ink)}
+.st-next{fill:var(--paper);stroke:var(--rule);stroke-width:1.5}
+.st-cur{fill:var(--signal);stroke:var(--ink);stroke-width:2}
+.st-tick{stroke:var(--muted);stroke-width:1}
+
+/* today: departure board */
+.note{background:var(--near-bg);border-left:6px solid var(--signal);padding:10px 12px;border-radius:4px;margin-bottom:16px;font-size:15px}
+.de-title{font:700 44px/.95 var(--display);letter-spacing:.005em}
+.tr-title{color:var(--muted);font-weight:600;margin-top:6px}
+.task{margin-top:12px;max-width:62ch}
+.board{border-top:2px solid var(--ink);margin:20px 0 0}
+.dep{display:grid;grid-template-columns:3.3ch 1fr 28px;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--rule);padding:14px 2px}
+.dep-min{font:700 32px/1 var(--display);font-variant-numeric:tabular-nums}
+.dep-min small{display:block;font:600 11px/1 var(--din);color:var(--muted);margin-top:2px}
+.dep-name{font-size:18px;font-weight:600;line-height:1.25}
+.dep-name small{display:block;font-size:14px;font-weight:400;color:var(--muted);margin-top:3px}
+.dep-state{width:26px;height:26px;border-radius:50%;border:2px solid var(--rule);display:grid;place-items:center;font-weight:700;font-size:15px;line-height:1}
+.dep.is-done .dep-state{background:var(--green);border-color:var(--green);color:#fff}
+.dep.is-done .dep-min,.dep.is-done .dep-name{color:var(--muted)}
+
+/* buttons */
+.btn{-webkit-appearance:none;appearance:none;min-height:48px;padding:11px 16px;border:2px solid var(--ink);border-radius:10px;background:transparent;color:var(--ink);font:600 16px/1.2 var(--text)}
+.btn-primary{background:var(--blue);border-color:var(--blue);color:var(--on-blue)}
+.btn-quiet{border-color:var(--rule);color:var(--muted)}
+.btn-danger{border-color:var(--red);color:var(--red)}
+.btn.rec-on{background:var(--red);border-color:var(--red);color:#fff}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.mini{min-height:40px;padding:7px 12px;font-size:15px;border-radius:8px;border-width:1.5px}
+.wide{display:block;width:100%;margin-top:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.row.two{display:grid;grid-template-columns:1fr 1fr}
+.link{background:none;border:0;padding:6px 0;color:var(--blue);font:600 16px/1.2 var(--text);text-decoration:underline;text-underline-offset:3px}
+
+/* blocks */
+.bhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.timer{font:700 22px/1 var(--display);font-variant-numeric:tabular-nums;color:var(--muted)}
+.bh-title{font:700 36px/1 var(--display);margin:4px 0 16px}
+.sub{font:700 21px/1.15 var(--din);margin:26px 0 10px}
+.meta{color:var(--muted);font-size:14px;margin-bottom:6px}
+.hint{color:var(--muted);font-size:15px;margin-top:8px}
+.prompt{font-size:20px;font-weight:600;margin-bottom:8px}
+.de{font:600 28px/1.25 var(--text);margin:6px 0 4px}
+.tr{color:var(--muted);font-size:18px}
+.tr.big{color:var(--ink);font-size:24px;font-weight:600;line-height:1.3}
+.answer{display:block;width:100%;margin:14px 0 4px;padding:13px 12px;border:2px solid var(--ink);border-radius:10px;background:var(--surface);color:var(--ink);font:500 20px/1.3 var(--text)}
+.answer:disabled{opacity:.75}
+textarea.answer{min-height:92px;font-size:18px;resize:vertical}
+.intro p+p{margin-top:8px}
+.reading{margin:10px 0;padding:12px 14px;border-left:4px solid var(--ink);background:var(--surface);font-size:18px}
+.opts{display:grid;gap:10px;margin:14px 0 4px}
+.opt{text-align:left;padding:13px 14px;border:2px solid var(--rule);border-radius:10px;background:var(--surface);font:500 17px/1.35 var(--text)}
+.opt.is-right{border-color:var(--green);background:var(--ok-bg)}
+.opt.is-wrong{border-color:var(--red);background:var(--bad-bg)}
+
+/* feedback */
+.fb{margin:12px 0 4px;padding:12px 14px;border-left:6px solid;border-radius:4px}
+.fb.ok{border-color:var(--green);background:var(--ok-bg)}
+.fb.near{border-color:var(--signal);background:var(--near-bg)}
+.fb.bad{border-color:var(--red);background:var(--bad-bg)}
+.diff{font-size:20px;line-height:1.4;margin:6px 0}
+.diff.yours{font-size:16px;color:var(--muted)}
+mark.miss{background:transparent;color:inherit;font-weight:700;text-decoration:underline;text-decoration-color:var(--green);text-decoration-thickness:3px;text-underline-offset:4px}
+del.extra{color:var(--red);text-decoration-thickness:2px}
+.tags{margin-top:10px}
+.chip{display:inline-block;margin:0 6px 8px 0;padding:8px 12px;border:1.5px solid var(--rule);border-radius:999px;background:var(--surface);font:500 15px/1.2 var(--text)}
+.chip.is-on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+
+/* listen */
+.steps{padding-left:1.4em;margin:8px 0}
+.steps li{margin:3px 0}
+.check{display:flex;align-items:center;gap:10px;margin:14px 0 4px;font-size:16px}
+.check input{width:22px;height:22px;accent-color:var(--blue)}
+.rate{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px;font-size:15px;color:var(--muted)}
+.rate .chip{margin:0}
+.lines{list-style:none;padding:0;margin:16px 0 0;border-top:2px solid var(--ink)}
+.line{padding:12px 6px;border-bottom:1px solid var(--rule)}
+.line.is-cur{background:var(--near-bg)}
+.who{display:block;font:700 14px/1 var(--din);color:var(--muted);margin-bottom:5px}
+.line .de{font-size:20px;margin:0}
+.line .de.is-hidden{color:var(--rule);letter-spacing:.2em}
+.line .tr{font-size:15px;margin-top:2px}
+.acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+
+/* produce / grammar */
+.qas{list-style:none;padding:0;margin:0}
+.qa{padding:14px 0;border-top:1px solid var(--rule)}
+details{margin-top:4px}
+summary{color:var(--blue);font-weight:600;cursor:pointer}
+.points{padding-left:1.2em}
+.points li{margin:6px 0}
+.examples{list-style:none;padding:0;margin:14px 0 0}
+.examples li{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--rule)}
+.de-s{display:block;font-weight:600}
+.tr-s{display:block;color:var(--muted);font-size:15px}
+.recbox{margin:16px 0}
+.rectime{font:700 46px/1 var(--display);font-variant-numeric:tabular-nums;margin-top:12px;color:var(--red)}
+
+/* progress / errors */
+.result .level{font:700 48px/1 var(--display);margin:2px 0 10px}
+.result p+p{margin-top:8px}
+.bars{display:grid;gap:8px;margin-top:12px}
+.bar{display:grid;grid-template-columns:8.5em 1fr 3.4em;gap:10px;align-items:center;font-size:14px}
+.bar>span:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.bar-track{display:block;height:10px;background:var(--rule);border-radius:5px;overflow:hidden}
+.bar-fill{display:block;height:100%;background:var(--ink)}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}
+.facts dt{color:var(--muted);font-size:14px}
+.facts dd{font:700 34px/1 var(--display)}
+.top5{list-style:none;padding:0}
+.top5 li{display:grid;grid-template-columns:2ch 1fr;gap:12px;padding:10px 0;border-top:1px solid var(--rule)}
+.rank{font:700 28px/1 var(--display)}
+.errs{list-style:none;padding:0}
+.errs li{padding:10px 0;border-top:1px solid var(--rule)}
+.given{display:block;color:var(--red);font-size:15px}
+.empty p{margin-top:8px}
+
+/* settings */
+.field{display:grid;gap:6px;margin-top:14px}
+.field>span{font-weight:600;font-size:15px}
+select{width:100%;padding:12px;border:2px solid var(--ink);border-radius:10px;background:var(--surface);color:var(--ink);font:500 17px var(--text)}
+input[type=range]{width:100%;accent-color:var(--blue)}
+
+/* chrome */
+.tabs{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(5,1fr);background:var(--surface);border-top:1px solid var(--rule);padding-bottom:env(safe-area-inset-bottom,0px);z-index:10}
+.tab{position:relative;background:none;border:0;padding:15px 2px 13px;font:600 15px/1 var(--din);color:var(--muted)}
+.tab[aria-current="page"]{color:var(--ink)}
+.tab[aria-current="page"]::before{content:"";position:absolute;left:18%;right:18%;top:0;height:4px;background:var(--signal)}
+.badge{display:inline-block;min-width:20px;padding:0 6px;margin-left:3px;border-radius:10px;background:var(--red);color:#fff;font:700 12px/20px var(--text);vertical-align:2px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 74px);max-width:min(92vw,520px);padding:11px 16px;border-radius:10px;background:var(--ink);color:var(--paper);font-size:15px;z-index:30}
+.modal{position:fixed;inset:0;display:grid;place-items:end center;background:rgba(0,0,0,.45);z-index:40}
+.modal-card{width:min(560px,100%);max-height:86vh;overflow:auto;background:var(--surface);padding:18px 18px calc(env(safe-area-inset-bottom,0px) + 18px);border-radius:14px 14px 0 0}
+.modal-card textarea{min-height:40vh;font-size:14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+</style>
+</head>
+<body>
+<div id="app"><main id="main"></main></div>
+<nav class="tabs" aria-label="Bölümler">
+  <button class="tab" data-act="tab" data-view="today">Bugün</button>
+  <button class="tab" data-act="tab" data-view="review">Tekrar<span id="due-badge" class="badge" hidden></span></button>
+  <button class="tab" data-act="tab" data-view="errors">Hatalar</button>
+  <button class="tab" data-act="tab" data-view="progress">İlerleme</button>
+  <button class="tab" data-act="tab" data-view="settings">Ayarlar</button>
+</nav>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<div id="modal" class="modal" hidden></div>
+<noscript>Sprung için JavaScript gerekli.</noscript>
+<script>
+var CONTENT = {
+  "version": 1,
+  "placement": {
+    "A0": [
+      {"id":"a0-1","skill":"Kelime","type":"mc","prompt":"“Teşekkür ederim” Almancada hangisi?","options":["Bitte","Danke","Tschüss","Entschuldigung"],"optLang":"de","answer":1,"card":{"tr":"Teşekkür ederim.","de":"Danke.","alt":["Danke schön.","Danke sehr."]}},
+      {"id":"a0-2","skill":"Kelime","type":"mc","prompt":"“Hoşça kal” (samimi) Almancada hangisi?","options":["Hallo","Guten Morgen","Tschüss","Bitte"],"optLang":"de","answer":2,"card":{"tr":"Hoşça kal!","de":"Tschüss!"}},
+      {"id":"a0-3","skill":"Kelime","type":"mc","prompt":"“drei” hangi sayı?","options":["2","3","8","13"],"answer":1,"card":{"tr":"üç","de":"drei"}},
+      {"id":"a0-4","skill":"Gramer","type":"mc","prompt":"Ich ___ Kerem.","promptLang":"de","options":["heiße","heißt","heißen","heiß"],"optLang":"de","answer":0,"card":{"tr":"Adım Kerem.","de":"Ich heiße Kerem.","alt":["Mein Name ist Kerem."]}},
+      {"id":"a0-5","skill":"Okuma","type":"mc","text":"Hallo! Ich heiße Anna. Ich komme aus Berlin.","prompt":"Anna nereli?","options":["Berlin","Viyana","Zürih","Hamburg"],"answer":0},
+      {"id":"a0-6","skill":"Dinleme","type":"mc","audio":"Guten Morgen!","prompt":"Sesi çal. Ne duydun?","options":["Günaydın!","İyi akşamlar!","İyi geceler!","Hoşça kal!"],"answer":0,"card":{"tr":"Günaydın!","de":"Guten Morgen!"}}
+    ],
+    "A1": [
+      {"id":"a1-1","skill":"Kelime","type":"mc","prompt":"“Ich habe Hunger.” ne demek?","options":["Acıktım.","Susadım.","Yoruldum.","Üşüdüm."],"answer":0,"card":{"tr":"Acıktım.","de":"Ich habe Hunger."}},
+      {"id":"a1-2","skill":"Dinleme","type":"mc","audio":"Wo ist der Bahnhof?","prompt":"Sesi çal. Ne soruluyor?","options":["Tren istasyonu nerede?","Otobüs ne zaman geliyor?","Hastane nerede?","Bilet ne kadar?"],"answer":0,"card":{"tr":"Tren istasyonu nerede?","de":"Wo ist der Bahnhof?"}},
+      {"id":"a1-3","skill":"Yazma","type":"type","prompt":"Almanca yaz: “Anlamıyorum.”","answer":{"de":"Ich verstehe nicht.","alt":["Ich verstehe das nicht.","Das verstehe ich nicht.","Ich verstehe es nicht."]},"card":{"tr":"Anlamıyorum.","de":"Ich verstehe nicht.","alt":["Ich verstehe das nicht.","Das verstehe ich nicht.","Ich verstehe es nicht."]}},
+      {"id":"a1-4","skill":"Gramer","type":"mc","prompt":"Woher ___ du?","promptLang":"de","options":["kommst","komme","kommt","kommen"],"optLang":"de","answer":0,"card":{"tr":"Nerelisin?","de":"Woher kommst du?"}},
+      {"id":"a1-5","skill":"Gramer","type":"mc","prompt":"Ich habe ___ Bruder.","promptLang":"de","options":["ein","einen","eine","einem"],"optLang":"de","answer":1,"card":{"tr":"Bir erkek kardeşim var.","de":"Ich habe einen Bruder."}},
+      {"id":"a1-6","skill":"Gramer","type":"mc","prompt":"Hangisi doğru?","options":["Heute ich gehe ins Kino.","Heute gehe ich ins Kino.","Heute ich ins Kino gehe.","Gehe heute ich ins Kino."],"optLang":"de","answer":1,"card":{"tr":"Bugün sinemaya gidiyorum.","de":"Heute gehe ich ins Kino.","alt":["Ich gehe heute ins Kino."]}},
+      {"id":"a1-7","skill":"Okuma","type":"mc","text":"Ich heiße Murat. Ich bin 30 Jahre alt und wohne in Hamburg. Ich arbeite als Krankenpfleger. Am Wochenende spiele ich Fußball.","prompt":"Murat hafta sonu ne yapıyor?","options":["Futbol oynuyor.","Hastanede çalışıyor.","Hamburg'a gidiyor.","Kitap okuyor."],"answer":0},
+      {"id":"a1-8","skill":"Dinleme","type":"mc","audio":"Der Zug kommt um halb acht.","prompt":"Sesi çal. Tren saat kaçta geliyor?","options":["08:30","07:30","08:00","07:00"],"answer":1,"card":{"tr":"Tren yedi buçukta geliyor.","de":"Der Zug kommt um halb acht."}}
+    ],
+    "A2": [
+      {"id":"a2-1","skill":"Kelime","type":"mc","prompt":"“Ich hätte gern ein Glas Wasser.” ne demek?","options":["Bir bardak su rica ediyorum.","Bir bardak su içtim.","Su bitti.","Bir şişe su aldım."],"answer":0,"card":{"tr":"Bir bardak su rica ediyorum.","de":"Ich hätte gern ein Glas Wasser.","alt":["Ich hätte gerne ein Glas Wasser."]}},
+      {"id":"a2-2","skill":"Gramer","type":"mc","prompt":"Gestern ___ ich nach Berlin gefahren.","promptLang":"de","options":["habe","bin","war","hatte"],"optLang":"de","answer":1,"card":{"tr":"Dün Berlin'e gittim.","de":"Gestern bin ich nach Berlin gefahren.","alt":["Ich bin gestern nach Berlin gefahren."]}},
+      {"id":"a2-3","skill":"Gramer","type":"mc","prompt":"Ich gebe ___ Frau das Buch.","promptLang":"de","options":["die","der","den","dem"],"optLang":"de","answer":1,"card":{"tr":"Kitabı kadına veriyorum.","de":"Ich gebe der Frau das Buch."}},
+      {"id":"a2-4","skill":"Gramer","type":"mc","prompt":"Hangisi doğru?","options":["Ich bleibe zu Hause, weil ich bin krank.","Ich bleibe zu Hause, weil ich krank bin.","Ich bleibe zu Hause, weil bin ich krank.","Ich bleibe zu Hause, weil krank ich bin."],"optLang":"de","answer":1,"card":{"tr":"Evde kalıyorum çünkü hastayım.","de":"Ich bleibe zu Hause, weil ich krank bin."}},
+      {"id":"a2-5","skill":"Gramer","type":"mc","prompt":"Hangisi doğru?","options":["Der Film anfängt um 20 Uhr.","Der Film fängt um 20 Uhr an.","Der Film um 20 Uhr fängt an.","Der Film fängt an um 20 Uhr an."],"optLang":"de","answer":1,"card":{"tr":"Film saat yirmide başlıyor.","de":"Der Film fängt um 20 Uhr an."}},
+      {"id":"a2-6","skill":"Yazma","type":"type","prompt":"Almanca yaz: “Dün çok çalıştım.”","answer":{"de":"Gestern habe ich viel gearbeitet.","alt":["Ich habe gestern viel gearbeitet.","Gestern habe ich sehr viel gearbeitet.","Ich habe gestern sehr viel gearbeitet."]},"card":{"tr":"Dün çok çalıştım.","de":"Gestern habe ich viel gearbeitet.","alt":["Ich habe gestern viel gearbeitet.","Gestern habe ich sehr viel gearbeitet.","Ich habe gestern sehr viel gearbeitet."]}},
+      {"id":"a2-7","skill":"Okuma","type":"mc","text":"Liebe Frau Weber, leider kann ich morgen nicht zum Termin kommen, weil mein Sohn krank ist. Können wir am Freitag einen neuen Termin machen? Viele Grüße, Thomas Becker","prompt":"Thomas neden gelemiyor?","options":["Oğlu hasta.","Kendisi hasta.","Cuma günü çalışıyor.","Bayan Weber şehir dışında."],"answer":0},
+      {"id":"a2-8","skill":"Dinleme","type":"mc","audio":"Könnten Sie das bitte noch einmal langsam wiederholen?","prompt":"Sesi çal. Konuşmacı ne istiyor?","options":["Tekrar ve yavaş söylenmesini","Daha hızlı konuşulmasını","Yazılı verilmesini","Yeni bir randevu"],"answer":0,"card":{"tr":"Bunu bir kez daha yavaşça tekrar edebilir misiniz?","de":"Könnten Sie das bitte noch einmal langsam wiederholen?","alt":["Können Sie das bitte noch einmal langsam wiederholen?"]}}
+    ]
+  },
+  "days": [
+    {
+      "day": 1, "title": "Tanışma", "titleDe": "Kennenlernen",
+      "task": "Biriyle tanış: adını, nereli olduğunu, nerede yaşadığını ve mesleğini söyle. Anlamazsan tekrar iste.",
+      "grammar": {
+        "title": "Fiil ikinci sırada (ich, du, Sie)",
+        "points": [
+          "Düz cümlede ve soru kelimeli soruda fiil 2. sıradadır: Ich heiße Kerem. Woher kommen Sie?",
+          "Çekim: ich wohne, du wohnst, Sie wohnen. Dikkat: du heißt.",
+          "sein düzensizdir: ich bin, du bist, Sie sind.",
+          "Mesleği söylerken artikel yok: Ich bin Arzt."
+        ],
+        "examples": [
+          {"de":"Ich heiße Kerem.","tr":"Adım Kerem."},
+          {"de":"Wie heißt du?","tr":"Adın ne?"},
+          {"de":"Woher kommen Sie?","tr":"Nerelisiniz?"},
+          {"de":"Ich bin Arzt.","tr":"Ben doktorum."}
+        ]
+      },
+      "chunks": [
+        {"id":"d1-01","de":"Wie heißen Sie?","tr":"Adınız ne?"},
+        {"id":"d1-02","de":"Wie heißt du?","tr":"Adın ne?"},
+        {"id":"d1-03","de":"Ich heiße Kerem.","tr":"Adım Kerem.","alt":["Mein Name ist Kerem."]},
+        {"id":"d1-04","de":"Freut mich!","tr":"Memnun oldum!","alt":["Es freut mich!","Sehr erfreut!"]},
+        {"id":"d1-05","de":"Woher kommen Sie?","tr":"Nerelisiniz?"},
+        {"id":"d1-06","de":"Ich komme aus der Türkei.","tr":"Türkiye'den geliyorum.","alt":["Ich bin aus der Türkei."]},
+        {"id":"d1-07","de":"Ich wohne in Ankara.","tr":"Ankara'da yaşıyorum.","alt":["Ich lebe in Ankara."]},
+        {"id":"d1-08","de":"Was sind Sie von Beruf?","tr":"Mesleğiniz ne?","alt":["Was machen Sie beruflich?"]},
+        {"id":"d1-09","de":"Ich bin Arzt.","tr":"Ben doktorum."},
+        {"id":"d1-10","de":"Ich arbeite in einem Krankenhaus.","tr":"Bir hastanede çalışıyorum.","alt":["Ich arbeite im Krankenhaus."]},
+        {"id":"d1-11","de":"Entschuldigung, ich verstehe das nicht.","tr":"Pardon, bunu anlamıyorum.","alt":["Entschuldigung, das verstehe ich nicht.","Entschuldigung, ich verstehe nicht."]},
+        {"id":"d1-12","de":"Können Sie das bitte wiederholen?","tr":"Bunu tekrar edebilir misiniz lütfen?","alt":["Können Sie das bitte noch einmal sagen?","Können Sie das wiederholen, bitte?"]},
+        {"id":"d1-13","de":"Langsamer, bitte.","tr":"Daha yavaş, lütfen.","alt":["Bitte langsamer.","Etwas langsamer, bitte."]}
+      ],
+      "dialogue": {
+        "title": "Kongrede tanışma",
+        "speakers": {"A":"Lena","B":"Kerem"},
+        "lines": [
+          {"s":"A","de":"Guten Tag! Ich heiße Lena Schmidt. Wie heißen Sie?","tr":"İyi günler! Adım Lena Schmidt. Sizin adınız ne?"},
+          {"s":"B","de":"Guten Tag! Ich heiße Kerem.","tr":"İyi günler! Adım Kerem."},
+          {"s":"A","de":"Freut mich! Woher kommen Sie?","tr":"Memnun oldum! Nerelisiniz?"},
+          {"s":"B","de":"Ich komme aus der Türkei. Ich wohne in Ankara.","tr":"Türkiye'denim. Ankara'da yaşıyorum."},
+          {"s":"A","de":"Interessant! Was sind Sie von Beruf?","tr":"İlginç! Mesleğiniz ne?"},
+          {"s":"B","de":"Ich bin Arzt. Ich arbeite in einem Krankenhaus.","tr":"Doktorum. Bir hastanede çalışıyorum."},
+          {"s":"A","de":"Toll! Ich bin auch Ärztin, in Hamburg.","tr":"Harika! Ben de doktorum, Hamburg'da."},
+          {"s":"B","de":"Entschuldigung, können Sie das bitte wiederholen?","tr":"Pardon, bunu tekrar edebilir misiniz lütfen?"},
+          {"s":"A","de":"Ich bin auch Ärztin. Ich arbeite in Hamburg.","tr":"Ben de doktorum. Hamburg'da çalışıyorum."},
+          {"s":"B","de":"Ah, super! Freut mich sehr.","tr":"Ah, süper! Çok memnun oldum."}
+        ]
+      },
+      "produce": [],
+      "questions": []
+    },
+    {
+      "day": 2, "title": "Yaş ve aile", "titleDe": "Alter und Familie",
+      "task": "Yaşını söyle ve aileni kısaca anlat.",
+      "grammar": {
+        "title": "haben + Akkusativ, kein, mein",
+        "points": [
+          "haben'dan sonra Akkusativ: einen Bruder (der), eine Schwester (die), ein Kind (das).",
+          "Olumsuz: keinen, keine, kein. Ich habe keine Geschwister.",
+          "mein, meine: mein Vater, meine Mutter, meine Eltern (çoğul).",
+          "21–99: önce birler, sonra onlar. fünfunddreißig = 5 + 30."
+        ],
+        "examples": [
+          {"de":"Ich habe einen Bruder.","tr":"Bir erkek kardeşim var."},
+          {"de":"Ich habe keine Kinder.","tr":"Çocuğum yok."},
+          {"de":"Das ist meine Mutter.","tr":"Bu benim annem."},
+          {"de":"Mein Vater ist sechzig Jahre alt.","tr":"Babam altmış yaşında."}
+        ]
+      },
+      "chunks": [
+        {"id":"d2-01","de":"Wie alt sind Sie?","tr":"Kaç yaşındasınız?"},
+        {"id":"d2-02","de":"Ich bin fünfunddreißig Jahre alt.","tr":"Otuz beş yaşındayım.","alt":["Ich bin fünfunddreißig."]},
+        {"id":"d2-03","de":"Haben Sie Geschwister?","tr":"Kardeşiniz var mı?"},
+        {"id":"d2-04","de":"Ich habe einen Bruder und eine Schwester.","tr":"Bir erkek kardeşim ve bir kız kardeşim var."},
+        {"id":"d2-05","de":"Ich habe keine Geschwister.","tr":"Kardeşim yok."},
+        {"id":"d2-06","de":"Wo wohnt Ihre Familie?","tr":"Aileniz nerede yaşıyor?"},
+        {"id":"d2-07","de":"Meine Familie wohnt in einer anderen Stadt.","tr":"Ailem başka bir şehirde yaşıyor."},
+        {"id":"d2-08","de":"Sind Sie verheiratet?","tr":"Evli misiniz?"},
+        {"id":"d2-09","de":"Nein, ich bin ledig.","tr":"Hayır, bekârım.","alt":["Nein, ich bin nicht verheiratet."]},
+        {"id":"d2-10","de":"Das ist mein Vater.","tr":"Bu benim babam."},
+        {"id":"d2-11","de":"Das ist meine Mutter.","tr":"Bu benim annem."},
+        {"id":"d2-12","de":"Haben Sie Kinder?","tr":"Çocuğunuz var mı?"},
+        {"id":"d2-13","de":"Nein, ich habe keine Kinder.","tr":"Hayır, çocuğum yok."}
+      ],
+      "dialogue": {
+        "title": "Kahve molasında",
+        "speakers": {"A":"Lena","B":"Murat"},
+        "lines": [
+          {"s":"A","de":"Wie alt sind Sie, Murat?","tr":"Kaç yaşındasınız, Murat?"},
+          {"s":"B","de":"Ich bin dreißig. Und Sie?","tr":"Otuz yaşındayım. Ya siz?"},
+          {"s":"A","de":"Ich bin zweiunddreißig. Haben Sie Geschwister?","tr":"Otuz iki yaşındayım. Kardeşiniz var mı?"},
+          {"s":"B","de":"Ja, ich habe einen Bruder und eine Schwester. Haben Sie Kinder?","tr":"Evet, bir erkek ve bir kız kardeşim var. Çocuğunuz var mı?"},
+          {"s":"A","de":"Ja, ich habe eine Tochter. Sie ist vier Jahre alt.","tr":"Evet, bir kızım var. Dört yaşında."},
+          {"s":"B","de":"Schön! Wo wohnt Ihre Familie?","tr":"Ne güzel! Aileniz nerede yaşıyor?"},
+          {"s":"A","de":"Meine Eltern wohnen in München. Und Ihre Familie?","tr":"Annemle babam Münih'te yaşıyor. Ya sizin aileniz?"},
+          {"s":"B","de":"Meine Familie wohnt in einer anderen Stadt.","tr":"Ailem başka bir şehirde yaşıyor."}
+        ]
+      },
+      "produce": [
+        {"id":"d2-p1","tr":"Kardeşim yok.","de":"Ich habe keine Geschwister."},
+        {"id":"d2-p2","tr":"Babam altmış yaşında.","de":"Mein Vater ist sechzig Jahre alt.","alt":["Mein Vater ist sechzig."]},
+        {"id":"d2-p3","tr":"Bir kız kardeşim var.","de":"Ich habe eine Schwester."},
+        {"id":"d2-p4","tr":"Bu benim erkek kardeşim.","de":"Das ist mein Bruder."},
+        {"id":"d2-p5","tr":"Kız kardeşim tıp okuyor.","de":"Meine Schwester studiert Medizin."}
+      ],
+      "questions": [
+        {"id":"d2-q1","q":"Wie alt sind Sie?","tr":"Kaç yaşındasınız?","model":"Ich bin … Jahre alt."},
+        {"id":"d2-q2","q":"Haben Sie Geschwister?","tr":"Kardeşiniz var mı?","model":"Ja, ich habe … / Nein, ich habe keine Geschwister."},
+        {"id":"d2-q3","q":"Wo wohnt Ihre Familie?","tr":"Aileniz nerede yaşıyor?","model":"Meine Familie wohnt in …"}
+      ]
+    },
+    {
+      "day": 3, "title": "Günlük rutin ve saat", "titleDe": "Tagesablauf und Uhrzeit",
+      "task": "Bir gününü anlat: ne zaman kalkıyorsun, ne zaman çalışıyorsun, nöbetten sonra ne yapıyorsun.",
+      "grammar": {
+        "title": "Ayrılabilen fiiller ve saat",
+        "points": [
+          "Ayrılabilen fiilde ön ek sona gider: aufstehen → Ich stehe um sieben Uhr auf.",
+          "Saatte um: um acht Uhr = saat sekizde.",
+          "halb bir sonraki saate bakar: halb neun = 8:30.",
+          "Zaman başa gelirse fiil yine 2. sırada: Um sieben Uhr stehe ich auf."
+        ],
+        "examples": [
+          {"de":"Ich stehe um sechs Uhr auf.","tr":"Altıda kalkarım."},
+          {"de":"Um sechs Uhr stehe ich auf.","tr":"Saat altıda kalkarım."},
+          {"de":"Es ist halb acht.","tr":"Saat yedi buçuk."},
+          {"de":"Heute habe ich Nachtdienst.","tr":"Bugün gece nöbetim var."}
+        ]
+      },
+      "chunks": [
+        {"id":"d3-01","de":"Wie spät ist es?","tr":"Saat kaç?","alt":["Wie viel Uhr ist es?"]},
+        {"id":"d3-02","de":"Es ist acht Uhr.","tr":"Saat sekiz."},
+        {"id":"d3-03","de":"Es ist halb neun.","tr":"Saat sekiz buçuk."},
+        {"id":"d3-04","de":"Ich stehe um sieben Uhr auf.","tr":"Saat yedide kalkarım.","alt":["Um sieben Uhr stehe ich auf.","Ich stehe um sieben auf."]},
+        {"id":"d3-05","de":"Ich frühstücke um halb acht.","tr":"Yedi buçukta kahvaltı yaparım.","alt":["Um halb acht frühstücke ich."]},
+        {"id":"d3-06","de":"Ich arbeite von acht bis sechzehn Uhr.","tr":"Sekizden on altıya kadar çalışırım.","alt":["Ich arbeite von acht Uhr bis sechzehn Uhr."]},
+        {"id":"d3-07","de":"Heute habe ich Nachtdienst.","tr":"Bugün gece nöbetim var.","alt":["Ich habe heute Nachtdienst."]},
+        {"id":"d3-08","de":"Nach dem Dienst schlafe ich.","tr":"Nöbetten sonra uyurum.","alt":["Ich schlafe nach dem Dienst."]},
+        {"id":"d3-09","de":"Ich bin müde.","tr":"Yorgunum."},
+        {"id":"d3-10","de":"Am Abend koche ich.","tr":"Akşam yemek yaparım.","alt":["Ich koche am Abend.","Abends koche ich."]},
+        {"id":"d3-11","de":"Ich gehe um elf Uhr ins Bett.","tr":"Saat on birde yatarım.","alt":["Um elf Uhr gehe ich ins Bett."]},
+        {"id":"d3-12","de":"Ich habe heute frei.","tr":"Bugün izinliyim.","alt":["Heute habe ich frei."]},
+        {"id":"d3-13","de":"Wann stehen Sie auf?","tr":"Ne zaman kalkarsınız?"}
+      ],
+      "dialogue": {
+        "title": "Nasıl bir gün?",
+        "speakers": {"A":"Lena","B":"Kerem"},
+        "lines": [
+          {"s":"A","de":"Wie sieht Ihr Tag aus?","tr":"Gününüz nasıl geçiyor?"},
+          {"s":"B","de":"Ich stehe um sieben Uhr auf und frühstücke um halb acht.","tr":"Yedide kalkıyorum, yedi buçukta kahvaltı yapıyorum."},
+          {"s":"A","de":"Und wann arbeiten Sie?","tr":"Peki ne zaman çalışıyorsunuz?"},
+          {"s":"B","de":"Normalerweise von acht bis sechzehn Uhr. Aber heute habe ich Nachtdienst.","tr":"Normalde sekizden on altıya kadar. Ama bugün gece nöbetim var."},
+          {"s":"A","de":"Oh, dann sind Sie morgen sicher müde.","tr":"O zaman yarın kesin yorgun olursunuz."},
+          {"s":"B","de":"Ja. Nach dem Dienst schlafe ich bis Mittag.","tr":"Evet. Nöbetten sonra öğlene kadar uyuyorum."},
+          {"s":"A","de":"Und was machen Sie am Abend?","tr":"Peki akşam ne yapıyorsunuz?"},
+          {"s":"B","de":"Am Abend koche ich und gehe um elf Uhr ins Bett.","tr":"Akşam yemek yapıyorum ve on birde yatıyorum."}
+        ]
+      },
+      "produce": [
+        {"id":"d3-p1","tr":"Saat dokuz buçuk.","de":"Es ist halb zehn."},
+        {"id":"d3-p2","tr":"Altıda kalkarım.","de":"Ich stehe um sechs Uhr auf.","alt":["Um sechs Uhr stehe ich auf.","Ich stehe um sechs auf."]},
+        {"id":"d3-p3","tr":"Yarın gece nöbetim var.","de":"Morgen habe ich Nachtdienst.","alt":["Ich habe morgen Nachtdienst."]},
+        {"id":"d3-p4","tr":"Akşam yorgunum.","de":"Am Abend bin ich müde.","alt":["Ich bin am Abend müde.","Abends bin ich müde."]},
+        {"id":"d3-p5","tr":"Saat on ikide yatarım.","de":"Ich gehe um zwölf Uhr ins Bett.","alt":["Um zwölf Uhr gehe ich ins Bett."]}
+      ],
+      "questions": [
+        {"id":"d3-q1","q":"Wann stehen Sie auf?","tr":"Ne zaman kalkarsınız?","model":"Ich stehe um … Uhr auf."},
+        {"id":"d3-q2","q":"Wann arbeiten Sie?","tr":"Ne zaman çalışırsınız?","model":"Ich arbeite von … bis … Uhr."},
+        {"id":"d3-q3","q":"Was machen Sie nach dem Nachtdienst?","tr":"Gece nöbetinden sonra ne yaparsınız?","model":"Nach dem Nachtdienst … ich …"}
+      ]
+    },
+    {
+      "day": 4, "title": "Kafe ve restoran", "titleDe": "Im Café",
+      "task": "Kafede sipariş ver, bir şey sor ve hesabı öde.",
+      "grammar": {
+        "title": "Nazik istek ve Akkusativ",
+        "points": [
+          "Siparişte en doğal kalıplar: Ich hätte gern … / Ich möchte … / Ich nehme …",
+          "Akkusativ: der → einen (einen Kaffee), die → eine (eine Suppe), das → ein (ein Wasser).",
+          "Olumsuz: keinen, keine, kein. Ich möchte keinen Zucker."
+        ],
+        "examples": [
+          {"de":"Ich hätte gern einen Tee.","tr":"Bir çay rica ediyorum."},
+          {"de":"Ich möchte eine Cola.","tr":"Bir kola istiyorum."},
+          {"de":"Ich nehme ein Stück Kuchen.","tr":"Bir dilim pasta alıyorum."},
+          {"de":"Ich möchte keinen Zucker.","tr":"Şeker istemiyorum."}
+        ]
+      },
+      "chunks": [
+        {"id":"d4-01","de":"Die Speisekarte, bitte.","tr":"Menü, lütfen.","alt":["Die Karte, bitte."]},
+        {"id":"d4-02","de":"Ich hätte gern einen Kaffee.","tr":"Bir kahve rica ediyorum.","alt":["Ich hätte gerne einen Kaffee.","Ich hätte gern einen Kaffee, bitte."]},
+        {"id":"d4-03","de":"Ich möchte ein Wasser, bitte.","tr":"Bir su istiyorum, lütfen.","alt":["Ich möchte ein Wasser."]},
+        {"id":"d4-04","de":"Was empfehlen Sie?","tr":"Ne tavsiye edersiniz?"},
+        {"id":"d4-05","de":"Ich nehme die Suppe.","tr":"Çorbayı alıyorum."},
+        {"id":"d4-06","de":"Ohne Zucker, bitte.","tr":"Şekersiz, lütfen."},
+        {"id":"d4-07","de":"Ist das vegetarisch?","tr":"Bu vejetaryen mi?"},
+        {"id":"d4-08","de":"Ist da Schweinefleisch drin?","tr":"İçinde domuz eti var mı?"},
+        {"id":"d4-09","de":"Das schmeckt sehr gut!","tr":"Bu çok lezzetli!"},
+        {"id":"d4-10","de":"Die Rechnung, bitte.","tr":"Hesap, lütfen."},
+        {"id":"d4-11","de":"Zusammen oder getrennt?","tr":"Birlikte mi, ayrı mı?"},
+        {"id":"d4-12","de":"Kann ich mit Karte zahlen?","tr":"Kartla ödeyebilir miyim?","alt":["Kann ich mit Karte bezahlen?"]},
+        {"id":"d4-13","de":"Stimmt so.","tr":"Üstü kalsın."}
+      ],
+      "dialogue": {
+        "title": "Kafede",
+        "speakers": {"A":"Garson","B":"Kerem"},
+        "lines": [
+          {"s":"A","de":"Guten Tag! Was darf es sein?","tr":"İyi günler! Ne alırsınız?"},
+          {"s":"B","de":"Ich hätte gern einen Kaffee, bitte. Ohne Zucker.","tr":"Bir kahve rica ediyorum. Şekersiz."},
+          {"s":"A","de":"Gern. Möchten Sie auch etwas essen?","tr":"Tabii. Bir şey de yemek ister misiniz?"},
+          {"s":"B","de":"Was empfehlen Sie?","tr":"Ne tavsiye edersiniz?"},
+          {"s":"A","de":"Die Tomatensuppe ist heute sehr gut.","tr":"Domates çorbası bugün çok güzel."},
+          {"s":"B","de":"Ist die vegetarisch?","tr":"Vejetaryen mi?"},
+          {"s":"A","de":"Ja, sie ist vegetarisch.","tr":"Evet, vejetaryen."},
+          {"s":"B","de":"Dann nehme ich die Suppe.","tr":"O zaman çorbayı alıyorum."},
+          {"s":"A","de":"Sehr gern.","tr":"Memnuniyetle."},
+          {"s":"B","de":"Die Rechnung, bitte.","tr":"Hesap, lütfen."},
+          {"s":"A","de":"Das macht zwölf Euro fünfzig.","tr":"On iki avro elli sent."},
+          {"s":"B","de":"Hier sind fünfzehn Euro. Stimmt so.","tr":"Buyurun, on beş avro. Üstü kalsın."}
+        ]
+      },
+      "produce": [
+        {"id":"d4-p1","tr":"Bir çay rica ediyorum.","de":"Ich hätte gern einen Tee.","alt":["Ich hätte gerne einen Tee.","Ich möchte einen Tee.","Einen Tee, bitte."]},
+        {"id":"d4-p2","tr":"Şekersiz bir kahve, lütfen.","de":"Einen Kaffee ohne Zucker, bitte.","alt":["Ich hätte gern einen Kaffee ohne Zucker.","Ich möchte einen Kaffee ohne Zucker."]},
+        {"id":"d4-p3","tr":"Nakit ödeyebilir miyim?","de":"Kann ich bar zahlen?","alt":["Kann ich bar bezahlen?"]},
+        {"id":"d4-p4","tr":"Su istemiyorum.","de":"Ich möchte kein Wasser."},
+        {"id":"d4-p5","tr":"Salatayı alıyorum.","de":"Ich nehme den Salat."}
+      ],
+      "questions": [
+        {"id":"d4-q1","q":"Was trinken Sie gern?","tr":"Ne içmeyi seversiniz?","model":"Ich trinke gern …"},
+        {"id":"d4-q2","q":"Was essen Sie gern?","tr":"Ne yemeyi seversiniz?","model":"Ich esse gern …"},
+        {"id":"d4-q3","q":"Was möchten Sie bestellen?","tr":"Ne sipariş etmek istersiniz?","model":"Ich hätte gern … / Ich nehme …"}
+      ]
+    },
+    {
+      "day": 5, "title": "Alışveriş ve eczane", "titleDe": "Einkaufen und Apotheke",
+      "task": "Markette ya da eczanede ihtiyacını söyle, fiyat sor ve öde.",
+      "grammar": {
+        "title": "Fiyat sormak ve brauchen + Akkusativ",
+        "points": [
+          "Fiyat: Was kostet das? / Wie viel kostet der Käse? Cevap: Er kostet drei Euro.",
+          "brauchen, suchen, haben + Akkusativ: Ich brauche einen Kassenbon.",
+          "zu = fazla: zu teuer, zu groß, zu klein."
+        ],
+        "examples": [
+          {"de":"Was kostet die Milch?","tr":"Süt ne kadar?"},
+          {"de":"Ich brauche eine Tüte.","tr":"Bir poşete ihtiyacım var."},
+          {"de":"Das ist zu klein.","tr":"Bu çok küçük."},
+          {"de":"Ich suche einen Supermarkt.","tr":"Bir süpermarket arıyorum."}
+        ]
+      },
+      "chunks": [
+        {"id":"d5-01","de":"Ich suche Milch.","tr":"Süt arıyorum."},
+        {"id":"d5-02","de":"Wo finde ich Brot?","tr":"Ekmeği nerede bulurum?","alt":["Wo finde ich das Brot?"]},
+        {"id":"d5-03","de":"Was kostet das?","tr":"Bu ne kadar?","alt":["Wie viel kostet das?"]},
+        {"id":"d5-04","de":"Das ist zu teuer.","tr":"Bu çok pahalı."},
+        {"id":"d5-05","de":"Ich nehme das.","tr":"Bunu alıyorum."},
+        {"id":"d5-06","de":"Haben Sie das auch in Größe M?","tr":"Bunun M bedeni de var mı?"},
+        {"id":"d5-07","de":"Eine Tüte, bitte.","tr":"Bir poşet, lütfen."},
+        {"id":"d5-08","de":"Brauchen Sie einen Kassenbon?","tr":"Fiş ister misiniz?"},
+        {"id":"d5-09","de":"Nein, danke. Das ist alles.","tr":"Hayır, teşekkürler. Bu kadar."},
+        {"id":"d5-10","de":"Haben Sie Kopfschmerztabletten?","tr":"Baş ağrısı ilacınız var mı?"},
+        {"id":"d5-11","de":"Ich brauche etwas gegen Husten.","tr":"Öksürük için bir şeye ihtiyacım var."},
+        {"id":"d5-12","de":"Wann öffnet die Apotheke?","tr":"Eczane ne zaman açılıyor?"}
+      ],
+      "dialogue": {
+        "title": "Eczanede",
+        "speakers": {"A":"Eczacı","B":"Kerem"},
+        "lines": [
+          {"s":"A","de":"Guten Tag! Kann ich Ihnen helfen?","tr":"İyi günler! Yardımcı olabilir miyim?"},
+          {"s":"B","de":"Ja, ich brauche etwas gegen Husten.","tr":"Evet, öksürük için bir şeye ihtiyacım var."},
+          {"s":"A","de":"Haben Sie auch Fieber?","tr":"Ateşiniz de var mı?"},
+          {"s":"B","de":"Nein, nur Husten und Halsschmerzen.","tr":"Hayır, sadece öksürük ve boğaz ağrısı."},
+          {"s":"A","de":"Dann empfehle ich diesen Hustensaft.","tr":"O zaman bu öksürük şurubunu öneririm."},
+          {"s":"B","de":"Was kostet der?","tr":"Ne kadar?"},
+          {"s":"A","de":"Acht Euro neunzig.","tr":"Sekiz avro doksan."},
+          {"s":"B","de":"Gut, ich nehme ihn. Haben Sie auch Kopfschmerztabletten?","tr":"Tamam, alıyorum. Baş ağrısı ilacınız da var mı?"},
+          {"s":"A","de":"Ja, hier, bitte. Brauchen Sie eine Tüte?","tr":"Evet, buyurun. Poşet ister misiniz?"},
+          {"s":"B","de":"Nein, danke. Das ist alles.","tr":"Hayır, teşekkürler. Bu kadar."}
+        ]
+      },
+      "produce": [
+        {"id":"d5-p1","tr":"Bir eczane arıyorum.","de":"Ich suche eine Apotheke."},
+        {"id":"d5-p2","tr":"Peynir ne kadar?","de":"Was kostet der Käse?","alt":["Wie viel kostet der Käse?"]},
+        {"id":"d5-p3","tr":"Bu çok büyük.","de":"Das ist zu groß."},
+        {"id":"d5-p4","tr":"Ateş için bir şeye ihtiyacım var.","de":"Ich brauche etwas gegen Fieber."},
+        {"id":"d5-p5","tr":"Ekmeği alıyorum.","de":"Ich nehme das Brot."}
+      ],
+      "questions": [
+        {"id":"d5-q1","q":"Was kaufen Sie oft?","tr":"Sık sık ne alırsınız?","model":"Ich kaufe oft …"},
+        {"id":"d5-q2","q":"Wo kaufen Sie ein?","tr":"Nereden alışveriş yaparsınız?","model":"Ich kaufe im … ein."},
+        {"id":"d5-q3","q":"Was brauchen Sie heute?","tr":"Bugün neye ihtiyacınız var?","model":"Heute brauche ich …"}
+      ]
+    },
+    {
+      "day": 6, "title": "Ulaşım ve yol sorma", "titleDe": "Unterwegs",
+      "task": "Yol sor; hangi otobüse bineceğini ve nerede ineceğini öğren.",
+      "grammar": {
+        "title": "zum, zur ve mit + Dativ",
+        "points": [
+          "zu + artikel birleşir: zu dem → zum (zum Bahnhof), zu der → zur (zur Apotheke).",
+          "mit + Dativ: mit dem Bus, mit der U-Bahn, mit dem Zug.",
+          "Yol tarifinde emir kipi: Gehen Sie geradeaus. Nehmen Sie den Bus."
+        ],
+        "examples": [
+          {"de":"Wie komme ich zur Apotheke?","tr":"Eczaneye nasıl giderim?"},
+          {"de":"Ich fahre mit dem Bus.","tr":"Otobüsle gidiyorum."},
+          {"de":"Nehmen Sie die U-Bahn.","tr":"Metroya binin."},
+          {"de":"Gehen Sie die erste Straße links.","tr":"İlk sokaktan sola gidin."}
+        ]
+      },
+      "chunks": [
+        {"id":"d6-01","de":"Entschuldigung, wie komme ich zum Bahnhof?","tr":"Pardon, tren istasyonuna nasıl giderim?"},
+        {"id":"d6-02","de":"Gehen Sie geradeaus.","tr":"Düz gidin."},
+        {"id":"d6-03","de":"Dann links.","tr":"Sonra sola.","alt":["Dann nach links."]},
+        {"id":"d6-04","de":"Die zweite Straße rechts.","tr":"İkinci sokaktan sağa."},
+        {"id":"d6-05","de":"Ist das weit?","tr":"Uzak mı?","alt":["Ist es weit?"]},
+        {"id":"d6-06","de":"Nein, nur fünf Minuten zu Fuß.","tr":"Hayır, yürüyerek sadece beş dakika."},
+        {"id":"d6-07","de":"Welcher Bus fährt zum Krankenhaus?","tr":"Hangi otobüs hastaneye gidiyor?"},
+        {"id":"d6-08","de":"Ich fahre mit der U-Bahn.","tr":"Metroyla gidiyorum."},
+        {"id":"d6-09","de":"Wo muss ich aussteigen?","tr":"Nerede inmem gerekiyor?"},
+        {"id":"d6-10","de":"Eine Fahrkarte nach Berlin, bitte.","tr":"Berlin'e bir bilet, lütfen."},
+        {"id":"d6-11","de":"Hin und zurück?","tr":"Gidiş-dönüş mü?"},
+        {"id":"d6-12","de":"Der Zug hat Verspätung.","tr":"Tren gecikiyor."}
+      ],
+      "dialogue": {
+        "title": "Yol tarifi",
+        "speakers": {"A":"Kerem","B":"Yaya"},
+        "lines": [
+          {"s":"A","de":"Entschuldigung, wie komme ich zum Krankenhaus?","tr":"Pardon, hastaneye nasıl giderim?"},
+          {"s":"B","de":"Zum Krankenhaus? Das ist ein bisschen weit. Nehmen Sie den Bus Nummer zwölf.","tr":"Hastaneye mi? Biraz uzak. On iki numaralı otobüse binin."},
+          {"s":"A","de":"Wo ist die Haltestelle?","tr":"Durak nerede?"},
+          {"s":"B","de":"Gehen Sie geradeaus und dann die zweite Straße links.","tr":"Düz gidin, sonra ikinci sokaktan sola."},
+          {"s":"A","de":"Und wo muss ich aussteigen?","tr":"Peki nerede inmem gerekiyor?"},
+          {"s":"B","de":"An der Haltestelle Klinikum. Das sind fünf Stationen.","tr":"Klinikum durağında. Beş durak."},
+          {"s":"A","de":"Vielen Dank!","tr":"Çok teşekkürler!"},
+          {"s":"B","de":"Gern geschehen!","tr":"Rica ederim!"}
+        ]
+      },
+      "produce": [
+        {"id":"d6-p1","tr":"Eczaneye nasıl giderim?","de":"Wie komme ich zur Apotheke?"},
+        {"id":"d6-p2","tr":"Otobüsle gidiyorum.","de":"Ich fahre mit dem Bus."},
+        {"id":"d6-p3","tr":"Sağa gidin.","de":"Gehen Sie nach rechts.","alt":["Gehen Sie rechts."]},
+        {"id":"d6-p4","tr":"Hastane uzak mı?","de":"Ist das Krankenhaus weit?","alt":["Ist das Krankenhaus weit weg?"]},
+        {"id":"d6-p5","tr":"Otobüs gecikiyor.","de":"Der Bus hat Verspätung."}
+      ],
+      "questions": [
+        {"id":"d6-q1","q":"Wie fahren Sie zur Arbeit?","tr":"İşe nasıl gidersiniz?","model":"Ich fahre mit dem … / mit der … zur Arbeit."},
+        {"id":"d6-q2","q":"Wie lange brauchen Sie zur Arbeit?","tr":"İşe gitmek ne kadar sürüyor?","model":"Ich brauche … Minuten."},
+        {"id":"d6-q3","q":"Ist Ihre Arbeit weit weg?","tr":"İşiniz uzak mı?","model":"Ja, … / Nein, nur … Minuten."}
+      ]
+    },
+    {
+      "day": 7, "title": "Randevu ve yardım", "titleDe": "Termine und Hilfe",
+      "task": "Telefonda randevu al: olmayan günü söyle, uygun günü kabul et. Gerekirse yardım iste.",
+      "grammar": {
+        "title": "am, im, um ve modal fiiller",
+        "points": [
+          "Gün: am Montag. Ay: im Mai. Saat: um zehn Uhr.",
+          "Modal fiil (können, müssen, möchten) 2. sırada, asıl fiil sonda: Ich muss den Termin verschieben.",
+          "Kısa olumsuz: Ich kann am Freitag nicht."
+        ],
+        "examples": [
+          {"de":"Am Montag habe ich Nachtdienst.","tr":"Pazartesi gece nöbetim var."},
+          {"de":"Können Sie am Dienstag kommen?","tr":"Salı günü gelebilir misiniz?"},
+          {"de":"Ich muss heute arbeiten.","tr":"Bugün çalışmam gerekiyor."},
+          {"de":"Der Termin ist im Oktober.","tr":"Randevu ekimde."}
+        ]
+      },
+      "chunks": [
+        {"id":"d7-01","de":"Welcher Tag ist heute?","tr":"Bugün günlerden ne?"},
+        {"id":"d7-02","de":"Heute ist Montag.","tr":"Bugün pazartesi."},
+        {"id":"d7-03","de":"Ich möchte einen Termin machen.","tr":"Randevu almak istiyorum.","alt":["Ich möchte einen Termin vereinbaren."]},
+        {"id":"d7-04","de":"Haben Sie am Dienstag Zeit?","tr":"Salı günü vaktiniz var mı?"},
+        {"id":"d7-05","de":"Am Mittwoch um zehn Uhr?","tr":"Çarşamba saat onda?"},
+        {"id":"d7-06","de":"Das passt mir gut.","tr":"Bu bana uyar."},
+        {"id":"d7-07","de":"Ich kann am Freitag nicht.","tr":"Cuma günü yapamam."},
+        {"id":"d7-08","de":"Ich muss den Termin verschieben.","tr":"Randevuyu ertelemem gerekiyor."},
+        {"id":"d7-09","de":"Wann haben Sie Geburtstag?","tr":"Doğum gününüz ne zaman?"},
+        {"id":"d7-10","de":"Der Termin ist im November.","tr":"Randevu kasımda."},
+        {"id":"d7-11","de":"Können Sie mir helfen?","tr":"Bana yardım edebilir misiniz?"},
+        {"id":"d7-12","de":"Ich brauche Hilfe.","tr":"Yardıma ihtiyacım var."},
+        {"id":"d7-13","de":"Rufen Sie bitte einen Arzt!","tr":"Lütfen bir doktor çağırın!","alt":["Bitte rufen Sie einen Arzt!"]}
+      ],
+      "dialogue": {
+        "title": "Telefonda randevu",
+        "speakers": {"A":"Muayenehane","B":"Kerem"},
+        "lines": [
+          {"s":"A","de":"Praxis Dr. Weber, guten Tag!","tr":"Dr. Weber muayenehanesi, iyi günler!"},
+          {"s":"B","de":"Guten Tag! Ich möchte einen Termin machen.","tr":"İyi günler! Randevu almak istiyorum."},
+          {"s":"A","de":"Gern. Haben Sie am Dienstag Zeit?","tr":"Tabii. Salı günü vaktiniz var mı?"},
+          {"s":"B","de":"Am Dienstag kann ich leider nicht. Da habe ich Nachtdienst.","tr":"Salı günü maalesef olmaz. O gün gece nöbetim var."},
+          {"s":"A","de":"Und am Mittwoch um zehn Uhr?","tr":"Peki çarşamba saat onda?"},
+          {"s":"B","de":"Ja, das passt mir gut.","tr":"Evet, bu bana uyar."},
+          {"s":"A","de":"Wie ist Ihr Name, bitte?","tr":"Adınız lütfen?"},
+          {"s":"B","de":"Kerem Yilmaz.","tr":"Kerem Yılmaz."},
+          {"s":"A","de":"Danke. Also Mittwoch, zehn Uhr. Bis dann!","tr":"Teşekkürler. Yani çarşamba, saat on. Görüşmek üzere!"},
+          {"s":"B","de":"Vielen Dank. Auf Wiederhören!","tr":"Çok teşekkürler. Hoşça kalın! (telefonda)"}
+        ]
+      },
+      "produce": [
+        {"id":"d7-p1","tr":"Perşembe günü vaktim yok.","de":"Am Donnerstag habe ich keine Zeit.","alt":["Ich habe am Donnerstag keine Zeit."]},
+        {"id":"d7-p2","tr":"Yarın çalışmam gerekiyor.","de":"Morgen muss ich arbeiten.","alt":["Ich muss morgen arbeiten."]},
+        {"id":"d7-p3","tr":"Saat dokuzda gelebilir misiniz?","de":"Können Sie um neun Uhr kommen?"},
+        {"id":"d7-p4","tr":"Randevu cuma günü.","de":"Der Termin ist am Freitag."},
+        {"id":"d7-p5","tr":"Pazartesi gece nöbetim var.","de":"Am Montag habe ich Nachtdienst.","alt":["Ich habe am Montag Nachtdienst."]}
+      ],
+      "questions": [
+        {"id":"d7-q1","q":"Welcher Tag ist heute?","tr":"Bugün günlerden ne?","model":"Heute ist …"},
+        {"id":"d7-q2","q":"Wann haben Sie Nachtdienst?","tr":"Ne zaman gece nöbetiniz var?","model":"Ich habe am … Nachtdienst."},
+        {"id":"d7-q3","q":"Wann haben Sie Zeit?","tr":"Ne zaman vaktiniz var?","model":"Am … habe ich Zeit."}
+      ]
+    }
+  ]
+};
+if (typeof module !== "undefined") module.exports = CONTENT;
+
+</script>
+<script>
+var Core = (function () {
+  'use strict';
+
+  var ERROR_TAGS = ['Artikel / cinsiyet', 'Fiil çekimi', 'Kelime sırası', 'Hâl (Akk/Dat)', 'Kelime / anlam', 'Yazım / umlaut', 'Diğer'];
+  // box -> days until next review. Box 1 = tomorrow, then 3, 7, 14, 30; box 6 = mastered.
+  var INTERVALS = [0, 1, 3, 7, 14, 30, 60];
+  var ARTICLES = ['der', 'die', 'das', 'den', 'dem', 'des', 'ein', 'eine', 'einen', 'einem', 'einer', 'eines',
+    'kein', 'keine', 'keinen', 'keinem', 'keiner', 'mein', 'meine', 'meinen', 'meinem', 'meiner'];
+
+  // ---------- dates (local calendar days) ----------
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function todayStr(d) { d = d || new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function parseDate(s) { var p = String(s).split('-').map(Number); return new Date(p[0], p[1] - 1, p[2], 12, 0, 0); }
+  function addDays(s, n) { var d = parseDate(s); d.setDate(d.getDate() + n); return todayStr(d); }
+  function daysBetween(a, b) { return Math.round((parseDate(b) - parseDate(a)) / 86400000); }
+
+  // ---------- numbers ----------
+  var UNITS = ['null', 'eins', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sieben', 'acht', 'neun'];
+  var TEENS = ['zehn', 'elf', 'zwölf', 'dreizehn', 'vierzehn', 'fünfzehn', 'sechzehn', 'siebzehn', 'achtzehn', 'neunzehn'];
+  var TENS = ['', '', 'zwanzig', 'dreißig', 'vierzig', 'fünfzig', 'sechzig', 'siebzig', 'achtzig', 'neunzig'];
+  function numToDe(n) {
+    if (typeof n !== 'number' || n % 1 !== 0 || n < 0 || n > 99) return String(n);
+    if (n < 10) return UNITS[n];
+    if (n < 20) return TEENS[n - 10];
+    var t = Math.floor(n / 10), u = n % 10;
+    if (u === 0) return TENS[t];
+    return (u === 1 ? 'ein' : UNITS[u]) + 'und' + TENS[t];
+  }
+  function digitsToWords(s) {
+    return String(s).replace(/(^|[^\d])(\d{1,2})(?=$|[^\d])/g, function (m, pre, num) { return pre + numToDe(parseInt(num, 10)); });
+  }
+
+  // ---------- text normalisation ----------
+  function clean(s) {
+    return String(s == null ? '' : s)
+      .replace(/[\u2018\u2019\u0060\u00B4]/g, "'")
+      .replace(/[\u201C\u201D\u201E\u00AB\u00BB"]/g, ' ')
+      .replace(/\s[\u2013\u2014-]+\s/g, ' ')
+      .replace(/[.,!?;:\u2026()\u00BF\u00A1]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  function translit(s) { return String(s).toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss'); }
+  function tokens(s) { var c = clean(s); return c ? c.split(' ') : []; }
+  function rawTokens(s) { var c = String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); return c ? c.split(' ') : []; }
+  function key(tok) { return translit(digitsToWords(clean(tok))); }
+
+  function lcsTable(a, b) {
+    var n = a.length, m = b.length, dp = [], i, j;
+    for (i = 0; i <= n; i++) { dp.push(new Array(m + 1).fill(0)); }
+    for (i = n - 1; i >= 0; i--) {
+      for (j = m - 1; j >= 0; j--) {
+        dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+      }
+    }
+    return dp;
+  }
+  function lcsLen(a, b) { return lcsTable(a, b)[0][0]; }
+
+  // Word-level diff. `a` = learner's words (ok=false means extra/wrong), `b` = target words (ok=false means missed).
+  function diffTokens(answer, target) {
+    var A = rawTokens(answer), B = rawTokens(target);
+    var ak = A.map(key), bk = B.map(key);
+    var dp = lcsTable(ak, bk), a = [], b = [], i = 0, j = 0;
+    while (i < A.length && j < B.length) {
+      if (ak[i] === bk[j]) { a.push({ t: A[i], ok: true }); b.push({ t: B[j], ok: true }); i++; j++; }
+      else if (dp[i + 1][j] >= dp[i][j + 1]) { a.push({ t: A[i], ok: false }); i++; }
+      else { b.push({ t: B[j], ok: false }); j++; }
+    }
+    while (i < A.length) { a.push({ t: A[i], ok: false }); i++; }
+    while (j < B.length) { b.push({ t: B[j], ok: false }); j++; }
+    return { a: a, b: b };
+  }
+
+  // Returns an index into ERROR_TAGS or null.
+  function suggestTag(a, t) {
+    var ak = tokens(a).map(key), tk = tokens(t).map(key);
+    if (ak.length && ak.length === tk.length && ak.slice().sort().join(' ') === tk.slice().sort().join(' ')) return 2;
+    var d = diffTokens(a, t);
+    var bad = d.a.filter(function (x) { return !x.ok; }).concat(d.b.filter(function (x) { return !x.ok; }))
+      .map(function (x) { return key(x.t); }).filter(Boolean);
+    if (bad.length && bad.every(function (w) { return ARTICLES.indexOf(w) >= 0; })) return 0;
+    return null;
+  }
+
+  // status: empty | correct | near | wrong
+  function checkAnswer(answer, de, alt) {
+    var targets = [de].concat(alt || []);
+    var a = clean(answer);
+    if (!a) return { status: 'empty', answer: answer, target: de };
+    var aW = clean(digitsToWords(a));
+    var i, t, tW;
+    for (i = 0; i < targets.length; i++) {
+      t = targets[i]; tW = clean(digitsToWords(clean(t)));
+      if (tW === aW) return { status: 'correct', answer: answer, target: t };
+    }
+    for (i = 0; i < targets.length; i++) {
+      t = targets[i]; tW = clean(digitsToWords(clean(t)));
+      if (tW.toLowerCase() === aW.toLowerCase()) {
+        return { status: 'near', answer: answer, target: t, note: 'Büyük/küçük harf: Almancada cümle başı ve bütün isimler büyük harfle yazılır.' };
+      }
+    }
+    for (i = 0; i < targets.length; i++) {
+      t = targets[i]; tW = clean(digitsToWords(clean(t)));
+      if (translit(tW) === translit(aW)) {
+        return { status: 'near', answer: answer, target: t, note: 'Yazım: ä, ö, ü ve ß harflerine dikkat.' };
+      }
+    }
+    var ak = tokens(a).map(key), best = targets[0], bestScore = -1;
+    for (i = 0; i < targets.length; i++) {
+      var tk = tokens(targets[i]).map(key);
+      var sc = lcsLen(ak, tk) / Math.max(ak.length, tk.length, 1);
+      if (sc > bestScore) { bestScore = sc; best = targets[i]; }
+    }
+    return { status: 'wrong', answer: answer, target: best, suggestTag: suggestTag(a, best) };
+  }
+
+  // ---------- spaced repetition (Leitner) ----------
+  function schedule(card, result, today) {
+    card.reps = (card.reps || 0) + 1;
+    card.last = today;
+    if (result === 'wrong') {
+      card.box = 1; card.lapses = (card.lapses || 0) + 1; card.due = addDays(today, 1);
+    } else if (result === 'hard') {
+      card.box = Math.max(1, card.box || 1); card.due = addDays(today, 1);
+    } else {
+      card.box = Math.min((card.box || 1) + 1, 6); card.due = addDays(today, INTERVALS[card.box]);
+    }
+    return card;
+  }
+
+  // ---------- placement ----------
+  function placementLevel(sc) {
+    var early = 'Hafta 1’in bir kısmı tanıdık gelecek. Bildiğin kalıpları “Zaten biliyorum” ile geç.';
+    if (sc.A0 !== undefined) {
+      return sc.A0 >= 4
+        ? { level: 'A0+', note: 'Temel kelimeler var, A1 yapıları henüz oturmamış. Hafta 1 tam senin seviyende; hiçbir bloğu atlama.' }
+        : { level: 'A0', note: 'Sıfıra yakın başlangıç. Hafta 1 tam senin seviyende; tekrarları aksatma.' };
+    }
+    if (sc.A2 === undefined) return { level: 'A1 (başlangıç)', note: early };
+    if (sc.A2 >= 6) return { level: 'A2', note: 'Hafta 1 sana kolay gelecek. Bildiklerini hızlı geç; sonraki paketleri daha zor isteyeceğiz.' };
+    if (sc.A2 >= 3) return { level: 'A1+ (A2’ye yakın)', note: 'Hafta 1’i hızlı geç, zayıf çıkan yapılara odaklan.' };
+    return { level: 'A1', note: early };
+  }
+
+  function streak(dates, today) {
+    var set = {}; (dates || []).forEach(function (d) { set[d] = true; });
+    var d = today; if (!set[d]) d = addDays(d, -1);
+    var n = 0; while (set[d]) { n++; d = addDays(d, -1); }
+    return n;
+  }
+
+  return {
+    ERROR_TAGS: ERROR_TAGS, INTERVALS: INTERVALS,
+    todayStr: todayStr, addDays: addDays, daysBetween: daysBetween,
+    numToDe: numToDe, digitsToWords: digitsToWords, clean: clean, translit: translit, tokens: tokens,
+    checkAnswer: checkAnswer, diffTokens: diffTokens, suggestTag: suggestTag,
+    schedule: schedule, placementLevel: placementLevel, streak: streak
+  };
+})();
+if (typeof module !== 'undefined') module.exports = Core;
+
+</script>
+<script>
+(function () {
+  'use strict';
+
+  var C = window.Core;
+  var DATA = window.CONTENT;
+  var STORE_KEY = 'sprung.state.v1';
+  var TOTAL_DAYS = 30;
+  var PHASES = [
+    { n: 1, from: 1, to: 7, name: 'Temel' },
+    { n: 2, from: 8, to: 14, name: 'Günlük hayat' },
+    { n: 3, from: 15, to: 21, name: 'Spontane' },
+    { n: 4, from: 22, to: 30, name: 'Gerçek hayat' }
+  ];
+  // Day 1 has no review block: there is nothing to review yet.
+  var DAY1_BLOCKS = [
+    { key: 'placement', name: 'Seviye testi', min: 20 },
+    { key: 'learn', name: 'Yeni kalıplar', min: 20 },
+    { key: 'listen', name: 'Dinleme ve shadowing', min: 15 },
+    { key: 'baseline', name: 'Gün 0 ses kaydı', min: 5 }
+  ];
+  var DEFAULT_BLOCKS = [
+    { key: 'review', name: 'Tekrar', min: 10 },
+    { key: 'learn', name: 'Yeni kalıplar', min: 15 },
+    { key: 'listen', name: 'Dinleme ve shadowing', min: 20 },
+    { key: 'produce', name: 'Üretim', min: 10 },
+    { key: 'grammar', name: 'Gramer', min: 5 }
+  ];
+  var BLOCK_NAMES = {
+    placement: 'Seviye testi', review: 'Tekrar', learn: 'Yeni kalıplar', listen: 'Dinleme ve shadowing',
+    produce: 'Üretim', grammar: 'Gramer', baseline: 'Gün 0 ses kaydı'
+  };
+
+  // ---------- helpers ----------
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function today() { return C.todayStr(); }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+  function vals(o) { return Object.keys(o).map(function (k) { return o[k]; }); }
+  function barTrack(frac) {
+    var p = Math.round(Math.max(0, Math.min(1, frac || 0)) * 100);
+    return '<span class="bar-track"><span class="bar-fill" style="width:' + p + '%"></span></span>';
+  }
+  function fmt(sec) { return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); }
+
+  // ---------- state ----------
+  function defaultState() {
+    return {
+      v: 1, startedAt: null, programDay: 1, sessions: {}, placement: null, cards: {}, errors: [], answers: [],
+      extraDays: [], settings: { voiceURI: null, rate: 0.9, pauseMode: true }, completedDates: [], recordings: {}
+    };
+  }
+  function hydrate(s) {
+    var out = Object.assign(defaultState(), s || {});
+    out.settings = Object.assign(defaultState().settings, (s && s.settings) || {});
+    return out;
+  }
+  function load() {
+    try { var raw = localStorage.getItem(STORE_KEY); return raw ? hydrate(JSON.parse(raw)) : defaultState(); }
+    catch (e) { return defaultState(); }
+  }
+  var state = load();
+  function save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+    catch (e) { toast('Kaydedilemedi. Depolama dolu olabilir; Ayarlar’dan yedeği kopyala.'); }
+  }
+
+  function getDay(n) {
+    var i;
+    for (i = 0; i < state.extraDays.length; i++) if (state.extraDays[i].day === n) return state.extraDays[i];
+    for (i = 0; i < DATA.days.length; i++) if (DATA.days[i].day === n) return DATA.days[i];
+    return null;
+  }
+  function maxContentDay() { return DATA.days.concat(state.extraDays).reduce(function (m, d) { return Math.max(m, d.day); }, 0); }
+  function blocksFor(n, c) { if (c && c.blocks) return c.blocks; return n === 1 ? DAY1_BLOCKS : DEFAULT_BLOCKS; }
+  function phaseOf(n) {
+    for (var i = 0; i < PHASES.length; i++) if (n >= PHASES[i].from && n <= PHASES[i].to) return PHASES[i];
+    return PHASES[PHASES.length - 1];
+  }
+  function findChunk(c, id) { for (var i = 0; i < c.chunks.length; i++) if (c.chunks[i].id === id) return c.chunks[i]; return null; }
+
+  function session(n) {
+    if (!state.sessions[n]) state.sessions[n] = { blocks: {}, stats: { recall: [0, 0], review: [0, 0], produce: [0, 0] }, completedAt: null };
+    return state.sessions[n];
+  }
+  function markDone(key) { session(state.programDay).blocks[key] = true; if (!state.startedAt) state.startedAt = today(); save(); }
+  function bump(k, ok) { var st = session(state.programDay).stats; if (!st[k]) st[k] = [0, 0]; st[k][1]++; if (ok) st[k][0]++; }
+  function dueCards() {
+    var t = today();
+    return vals(state.cards).filter(function (c) { return c.due <= t; })
+      .sort(function (a, b) { return a.due < b.due ? -1 : a.due > b.due ? 1 : (a.box || 1) - (b.box || 1); });
+  }
+  function addCard(id, tr, de, alt, src, box, inDays) {
+    if (state.cards[id]) return false;
+    state.cards[id] = { id: id, tr: tr, de: de, alt: alt || [], src: src, box: box, due: C.addDays(today(), inDays), reps: 0, lapses: 0, created: today() };
+    return true;
+  }
+  function logError(tr, expected, given, tagIdx) {
+    state.errors.push({ date: today(), day: state.programDay, tr: tr, expected: expected, given: given, tag: tagIdx == null ? null : C.ERROR_TAGS[tagIdx] });
+    if (state.errors.length > 500) state.errors = state.errors.slice(-500);
+  }
+  function streak() { return C.streak(state.completedDates, today()); }
+  function completedDays() {
+    return Object.keys(state.sessions).filter(function (k) { return state.sessions[k].completedAt; })
+      .map(Number).sort(function (a, b) { return a - b; });
+  }
+  function accOf(days) {
+    var a = 0, n = 0;
+    days.forEach(function (d) {
+      var st = (state.sessions[d] || {}).stats || {};
+      ['recall', 'review', 'produce'].forEach(function (k) { if (st[k]) { a += st[k][0]; n += st[k][1]; } });
+    });
+    return [a, n];
+  }
+  function findAnswer(id) {
+    for (var i = 0; i < state.answers.length; i++) if (state.answers[i].id === id && state.answers[i].day === state.programDay) return state.answers[i];
+    return null;
+  }
+
+  // ---------- speech ----------
+  var TTS = {
+    ok: typeof window.speechSynthesis !== 'undefined' && typeof window.SpeechSynthesisUtterance !== 'undefined',
+    voices: [],
+    load: function () {
+      if (!this.ok) return;
+      this.voices = window.speechSynthesis.getVoices().filter(function (v) { return /^de([-_]|$)/i.test(v.lang || ''); });
+    },
+    pick: function () {
+      var id = state.settings.voiceURI, vs = this.voices, i;
+      for (i = 0; i < vs.length; i++) if (vs[i].voiceURI === id) return vs[i];
+      for (i = 0; i < vs.length; i++) if (/^de[-_]DE/i.test(vs[i].lang)) return vs[i];
+      return vs[0] || null;
+    },
+    speak: function (text, rate) {
+      var self = this;
+      return new Promise(function (resolve) {
+        if (!self.ok) { toast('Bu tarayıcıda Almanca ses yok.'); resolve(); return; }
+        var ss = window.speechSynthesis, u = new window.SpeechSynthesisUtterance(String(text));
+        u.lang = 'de-DE';
+        var v = self.pick(); if (v) u.voice = v;
+        u.rate = rate || state.settings.rate || 0.9;
+        var done = false;
+        function fin() { if (!done) { done = true; resolve(); } }
+        u.onend = fin; u.onerror = fin;
+        setTimeout(fin, 2500 + String(text).split(/\s+/).length * 700 / u.rate);
+        if (ss.speaking || ss.pending) { ss.cancel(); setTimeout(function () { ss.speak(u); }, 80); }
+        else ss.speak(u);
+      });
+    },
+    stop: function () { if (this.ok) window.speechSynthesis.cancel(); }
+  };
+
+  // ---------- recordings ----------
+  var AudioDB = {
+    ok: typeof window.indexedDB !== 'undefined',
+    db: null,
+    open: function () {
+      var self = this;
+      if (self.db) return Promise.resolve(self.db);
+      return new Promise(function (res, rej) {
+        var r = window.indexedDB.open('sprung-audio', 1);
+        r.onupgradeneeded = function () { r.result.createObjectStore('rec'); };
+        r.onsuccess = function () { self.db = r.result; res(self.db); };
+        r.onerror = function () { rej(r.error); };
+      });
+    },
+    run: function (mode, fn) {
+      return this.open().then(function (db) {
+        return new Promise(function (res, rej) {
+          var tx = db.transaction('rec', mode), req = fn(tx.objectStore('rec'));
+          tx.oncomplete = function () { res(req ? req.result : undefined); };
+          tx.onerror = function () { rej(tx.error); };
+        });
+      });
+    },
+    put: function (k, v) { return this.run('readwrite', function (s) { return s.put(v, k); }); },
+    get: function (k) { return this.run('readonly', function (s) { return s.get(k); }); },
+    clear: function () { return this.run('readwrite', function (s) { return s.clear(); }); }
+  };
+
+  var AudioCache = {
+    urls: {},
+    set: function (k, blob) { if (this.urls[k]) URL.revokeObjectURL(this.urls[k]); this.urls[k] = URL.createObjectURL(blob); },
+    preload: function (keys) {
+      var self = this;
+      keys.forEach(function (k) {
+        if (self.urls[k] || !state.recordings[k] || !AudioDB.ok) return;
+        AudioDB.get(k).then(function (r) {
+          if (r && r.buf && !self.urls[k]) self.urls[k] = URL.createObjectURL(new Blob([r.buf], { type: r.type }));
+        }).catch(function () {});
+      });
+    },
+    play: function (k) {
+      var u = this.urls[k];
+      if (!u) { this.preload([k]); toast('Kayıt hazırlanıyor, bir kez daha bas.'); return; }
+      var p = new Audio(u).play();
+      if (p && p.catch) p.catch(function () { toast('Kayıt çalınamadı.'); });
+    }
+  };
+
+  var Rec = {
+    mr: null, stream: null, chunks: [], key: null, t0: 0,
+    supported: function () { return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder); },
+    start: function (key) {
+      var self = this;
+      if (!self.supported()) { toast('Bu tarayıcı ses kaydını desteklemiyor.'); return Promise.resolve(false); }
+      return navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+        var types = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'], mime = null;
+        for (var i = 0; i < types.length; i++) {
+          if (window.MediaRecorder.isTypeSupported && window.MediaRecorder.isTypeSupported(types[i])) { mime = types[i]; break; }
+        }
+        self.stream = stream; self.chunks = []; self.key = key; self.t0 = Date.now();
+        self.mr = mime ? new window.MediaRecorder(stream, { mimeType: mime }) : new window.MediaRecorder(stream);
+        self.mr.ondataavailable = function (e) { if (e.data && e.data.size) self.chunks.push(e.data); };
+        self.mr.start();
+        return true;
+      }).catch(function () {
+        self.cleanup();
+        toast('Mikrofon izni yok. İzin isteğine “İzin Ver” de; reddettiysen iPhone Ayarlar’ında Safari > Mikrofon’u kontrol et.');
+        return false;
+      });
+    },
+    stop: function () {
+      var self = this;
+      return new Promise(function (resolve) {
+        if (!self.mr) { resolve(null); return; }
+        var mr = self.mr, key = self.key;
+        mr.onstop = function () {
+          var type = mr.mimeType || (self.chunks[0] && self.chunks[0].type) || 'audio/mp4';
+          var blob = new Blob(self.chunks, { type: type });
+          var dur = Math.max(1, Math.round((Date.now() - self.t0) / 1000));
+          self.cleanup();
+          AudioCache.set(key, blob);
+          if (key !== 'mic-test') {
+            state.recordings[key] = { date: today(), dur: dur, type: type };
+            save();
+            if (AudioDB.ok) {
+              var getBuf = blob.arrayBuffer ? blob.arrayBuffer() : new Response(blob).arrayBuffer();
+              getBuf.then(function (buf) { return AudioDB.put(key, { type: type, buf: buf }); })
+                .catch(function () { toast('Kayıt cihaza yazılamadı; bu oturumda dinleyebilirsin.'); });
+            }
+          }
+          resolve({ key: key, dur: dur });
+        };
+        try { mr.stop(); } catch (e) { self.cleanup(); resolve(null); }
+      });
+    },
+    cleanup: function () {
+      if (this.stream) this.stream.getTracks().forEach(function (t) { t.stop(); });
+      this.stream = null; this.mr = null; this.key = null;
+    }
+  };
+
+  // ---------- toast / modal / clipboard ----------
+  var toastTimer = null;
+  function toast(msg) {
+    var el = $('#toast'); if (!el) return;
+    el.textContent = msg; el.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.hidden = true; }, 3500);
+  }
+  function showTextModal(title, text) {
+    var m = $('#modal');
+    m.innerHTML = '<div class="modal-card" role="dialog" aria-modal="true" aria-label="' + esc(title) + '">' +
+      '<h2 class="sub">' + esc(title) + '</h2><p class="hint">Metnin tamamını seç ve kopyala.</p>' +
+      '<textarea class="answer" readonly>' + esc(text) + '</textarea>' +
+      '<button class="btn btn-primary wide" data-act="modal-close">Kapat</button></div>';
+    m.hidden = false;
+    var ta = $('textarea', m); if (ta) { ta.focus(); ta.select(); }
+  }
+  function copyText(text, okMsg) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { toast(okMsg); }, function () { showTextModal('Kopyala', text); });
+    } else showTextModal('Kopyala', text);
+  }
+
+  // ---------- routing ----------
+  var ui = { view: 'today', block: null, tmp: { t0: Date.now() } };
+  var tick = null;
+  function go(view, block) {
+    TTS.stop();
+    if (Rec.mr) Rec.stop();
+    if (ui.tmp.ls) ui.tmp.ls.playing = false;
+    ui.view = view; ui.block = block || null; ui.tmp = { t0: Date.now() };
+    render();
+    if (window.scrollTo) window.scrollTo(0, 0);
+  }
+  function render() {
+    var html;
+    if (ui.view === 'block') html = viewBlock();
+    else if (ui.view === 'review') html = '<h1 class="bh-title">Tekrar</h1>' + reviewBody(false);
+    else if (ui.view === 'errors') html = viewErrors();
+    else if (ui.view === 'progress') html = viewProgress();
+    else if (ui.view === 'settings') html = viewSettings();
+    else html = viewToday();
+    $('#main').innerHTML = html;
+    updateTabs();
+    afterRender();
+  }
+  function afterRender() {
+    clearInterval(tick);
+    function upd() {
+      var el = $('#tmr'); if (el) el.textContent = fmt(Math.floor((Date.now() - ui.tmp.t0) / 1000));
+      var rt = $('#rectime'); if (rt && Rec.mr) rt.textContent = fmt(Math.floor((Date.now() - Rec.t0) / 1000));
+    }
+    if ($('#tmr') || $('#rectime')) { upd(); tick = setInterval(upd, 1000); }
+    if (ui.tmp.focus) { ui.tmp.focus = false; var inp = $('#ans'); if (inp && !inp.disabled) inp.focus(); }
+    var keys = $$('[data-reckey]').map(function (el) { return el.getAttribute('data-reckey'); });
+    if (keys.length) AudioCache.preload(keys);
+  }
+  function updateTabs() {
+    $$('.tab').forEach(function (b) {
+      var v = b.getAttribute('data-view');
+      if (ui.view === v || (ui.view === 'block' && v === 'today')) b.setAttribute('aria-current', 'page');
+      else b.removeAttribute('aria-current');
+    });
+    var due = dueCards().length, badge = $('#due-badge');
+    if (badge) { badge.textContent = due ? String(due) : ''; badge.hidden = !due; }
+  }
+
+  // ---------- shared pieces ----------
+  function linie(n) {
+    var total = TOTAL_DAYS, x0 = 8, x1 = 292, step = (x1 - x0) / (total - 1), cur = Math.min(n, total), dots = '', i, x;
+    for (i = 1; i <= total; i++) {
+      x = (x0 + (i - 1) * step).toFixed(1);
+      if (i === cur && n <= total) dots += '<circle cx="' + x + '" cy="12" r="5.5" class="st-cur"/>';
+      else dots += '<circle cx="' + x + '" cy="12" r="' + (i < n ? 3 : 2.6) + '" class="' + (i < n ? 'st-done' : 'st-next') + '"/>';
+    }
+    var ticks = [7, 14, 21].map(function (k) {
+      var tx = (x0 + (k - 1) * step + step / 2).toFixed(1);
+      return '<line x1="' + tx + '" x2="' + tx + '" y1="3" y2="21" class="st-tick"/>';
+    }).join('');
+    var prog = (x0 + (cur - 1) * step).toFixed(1);
+    return '<svg class="linie" viewBox="0 0 300 24" role="img" aria-label="30 günlük hat, ' + cur + '. gün">' +
+      '<line x1="' + x0 + '" x2="' + x1 + '" y1="12" y2="12" class="ln-rest"/>' +
+      '<line x1="' + x0 + '" x2="' + prog + '" y1="12" y2="12" class="ln-done"/>' + ticks + dots + '</svg>';
+  }
+  function topHeader(n) {
+    var d = Math.min(n, TOTAL_DAYS), ph = phaseOf(d), st = streak();
+    return '<header class="top"><div class="plate" role="img" aria-label="Gün ' + d + ' / ' + TOTAL_DAYS + '">' +
+      '<span class="plate-tag" lang="de">Tag ' + d + '</span><span class="plate-of" lang="de">von ' + TOTAL_DAYS + '</span></div>' +
+      '<div class="top-meta"><span class="phase">Faz ' + ph.n + ': ' + esc(ph.name) + '</span>' +
+      '<span class="streak">' + (st ? st + ' gün üst üste' : 'Seri henüz yok') + '</span></div></header>' + linie(n);
+  }
+  function answerInput(disabled, value) {
+    return '<label class="sr" for="ans">Almancası</label><input id="ans" class="answer" type="text" lang="de" autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false" enterkeyhint="done" placeholder="Almancasını yaz ya da dikte et"' +
+      (disabled ? ' disabled' : '') + ' value="' + esc(value || '') + '">';
+  }
+  function feedback(r) {
+    var say = ' <button class="link" data-act="say" data-text="' + esc(r.target) + '">Dinle</button>';
+    if (r.status === 'correct') {
+      return '<div class="fb ok" role="status"><strong>Doğru.</strong> <span lang="de">' + esc(r.target) + '</span>' + say + '</div>';
+    }
+    if (r.status === 'near') {
+      return '<div class="fb near" role="status"><strong>Doğru sayıldı.</strong> ' + esc(r.note) +
+        '<p class="diff" lang="de">' + esc(r.target) + '</p>' + say + '</div>';
+    }
+    var d = C.diffTokens(r.answer, r.target);
+    return '<div class="fb bad" role="status"><strong>Doğrusu:</strong>' +
+      '<p class="diff" lang="de">' + d.b.map(function (x) { return x.ok ? esc(x.t) : '<mark class="miss">' + esc(x.t) + '</mark>'; }).join(' ') + '</p>' +
+      '<p class="diff yours" lang="de">Senin: ' + (d.a.length ? d.a.map(function (x) { return x.ok ? esc(x.t) : '<del class="extra">' + esc(x.t) + '</del>'; }).join(' ') : '–') + '</p>' +
+      say + '</div>';
+  }
+  function tagPicker(sel) {
+    return '<div class="tags" role="group" aria-label="Hata türü"><p class="meta">Hata türü (hata defterine yazılır):</p>' +
+      C.ERROR_TAGS.map(function (t, i) {
+        return '<button class="chip' + (sel === i ? ' is-on' : '') + '" data-act="tag" data-i="' + i + '" aria-pressed="' + (sel === i) + '">' + esc(t) + '</button>';
+      }).join('') + '</div>';
+  }
+  function grammarCard(g, label) {
+    if (!g) return '';
+    return '<section class="gram"><h2 class="sub">' + esc(label ? label + ': ' + g.title : g.title) + '</h2>' +
+      '<ul class="points">' + (g.points || []).map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul>' +
+      '<ul class="examples">' + (g.examples || []).map(function (e) {
+        return '<li><button class="btn mini" data-act="say" data-text="' + esc(e.de) + '">Dinle</button>' +
+          '<span><span class="de-s" lang="de">' + esc(e.de) + '</span><span class="tr-s">' + esc(e.tr) + '</span></span></li>';
+      }).join('') + '</ul></section>';
+  }
+
+  // ---------- today ----------
+  function blockInfo(key, c) {
+    switch (key) {
+      case 'placement': return state.placement ? 'Sonuç: ' + state.placement.level : 'Kelime, gramer, okuma, dinleme';
+      case 'review': var k = dueCards().length; return k ? k + ' kart bekliyor' : 'Bugün kart yok';
+      case 'learn': return (c.chunks || []).length + ' kalıp';
+      case 'listen': return c.dialogue ? c.dialogue.title + ', ' + c.dialogue.lines.length + ' satır' : '';
+      case 'produce': return (c.produce || []).length + ' cümle, ' + (c.questions || []).length + ' soru';
+      case 'grammar': return c.grammar ? c.grammar.title : 'Bu gün için not yok';
+      case 'baseline': return state.recordings['baseline-0'] ? 'Kaydedildi' : '1–2 dakika kendini anlat';
+    }
+    return '';
+  }
+  function viewToday() {
+    var n = state.programDay, head = topHeader(n);
+    if (n > TOTAL_DAYS) {
+      return head + '<section class="empty"><h2 class="sub">30 gün tamam.</h2><p>İlerleme sekmesinde Gün 0 ve Gün 30 kayıtlarını art arda dinle.</p>' +
+        '<button class="btn btn-primary wide" data-act="tab" data-view="progress">İlerlemeyi aç</button></section>';
+    }
+    var c = getDay(n);
+    if (!c) return head + needPack(n);
+    var s = session(n), blocks = blocksFor(n, c);
+    if (!s.blocks.review && blocks.some(function (b) { return b.key === 'review'; }) && !dueCards().length) { s.blocks.review = true; save(); }
+    var rows = blocks.map(function (b) {
+      var done = !!s.blocks[b.key];
+      return '<button class="dep' + (done ? ' is-done' : '') + '" data-act="open-block" data-key="' + b.key + '">' +
+        '<span class="dep-min">' + b.min + '<small>dk</small></span>' +
+        '<span class="dep-name">' + esc(b.name) + '<small>' + esc(blockInfo(b.key, c)) + '</small></span>' +
+        '<span class="dep-state" aria-label="' + (done ? 'Tamamlandı' : 'Bekliyor') + '">' + (done ? '✓' : '') + '</span></button>';
+    }).join('');
+    var all = blocks.every(function (b) { return s.blocks[b.key]; });
+    var first = (n === 1 && !state.startedAt) ? '<p class="note">İlk iş: Ayarlar’da sesi ve mikrofonu test et. Sonra blokları yukarıdan aşağı aç.</p>' : '';
+    return head + '<section class="today">' + first +
+      '<h1 class="de-title" lang="de">' + esc(c.titleDe || c.title) + '</h1><p class="tr-title">' + esc(c.title) + '</p>' +
+      '<p class="task"><strong>Görev:</strong> ' + esc(c.task) + '</p>' +
+      '<div class="board">' + rows + '</div>' +
+      '<button class="btn ' + (all ? 'btn-primary' : 'btn-quiet') + ' wide" data-act="finish-day">Günü bitir</button></section>';
+  }
+  function needPack(n) {
+    return '<section class="empty"><h2 class="sub">Gün ' + n + ' için içerik yok</h2>' +
+      '<p>Sonraki haftanın paketi için:</p><ol class="steps"><li>Haftalık dökümü kopyala.</li><li>Claude’a yapıştır.</li>' +
+      '<li>Gelen JSON’u Ayarlar’daki “İçerik paketi” alanına yapıştır.</li></ol>' +
+      '<div class="row"><button class="btn btn-primary" data-act="copy-dump">Haftalık dökümü kopyala</button>' +
+      '<button class="btn" data-act="tab" data-view="settings">Paketi ekle</button></div></section>';
+  }
+  function finishDay() {
+    var n = state.programDay, c = getDay(n); if (!c) return;
+    var s = session(n), missing = blocksFor(n, c).filter(function (b) { return !s.blocks[b.key]; });
+    if (missing.length && !window.confirm('Bitmemiş blok var: ' + missing.map(function (b) { return b.name; }).join(', ') + '. Yine de günü bitireyim mi?')) return;
+    s.completedAt = today();
+    if (state.completedDates.indexOf(today()) < 0) state.completedDates.push(today());
+    if (!state.startedAt) state.startedAt = today();
+    state.programDay = n + 1;
+    save();
+    go('today');
+    toast('Gün ' + n + ' bitti.');
+  }
+
+  // ---------- blocks ----------
+  function blockHead(key) {
+    return '<div class="bhead"><button class="link back" data-act="back">Bugün</button><span class="timer" id="tmr" aria-label="Geçen süre">0:00</span></div>' +
+      '<h1 class="bh-title">' + esc(BLOCK_NAMES[key] || key) + '</h1>';
+  }
+  function viewBlock() {
+    var c = getDay(state.programDay);
+    if (!c) { ui.view = 'today'; return viewToday(); }
+    var k = ui.block;
+    var body = k === 'placement' ? viewPlacement()
+      : k === 'learn' ? viewLearn(c)
+      : k === 'listen' ? viewListen(c)
+      : k === 'produce' ? viewProduce(c)
+      : k === 'grammar' ? viewGrammar(c)
+      : k === 'review' ? reviewBody(true)
+      : k === 'baseline' ? viewBaseline() : '';
+    return blockHead(k) + body;
+  }
+
+  // placement
+  function viewPlacement() {
+    var t = ui.tmp.pl;
+    if (!t && state.placement) return placementResult(state.placement);
+    if (!t) {
+      return '<section class="intro"><p>15–20 dakika sürer; soru sayısı cevaplarına göre değişir.</p>' +
+        '<p>Bilmediğin soruda tahmin etme, “Bilmiyorum”a bas. Tahmin sonucu yanıltır.</p>' +
+        '<button class="btn btn-primary wide" data-act="pl-start">Teste başla</button></section>';
+    }
+    var it = t.items[t.idx], n = t.results.length + (t.answered ? 0 : 1);
+    var h = '<p class="meta">Soru ' + n + '</p><p class="prompt"' + (it.promptLang ? ' lang="' + it.promptLang + '"' : '') + '>' + esc(it.prompt) + '</p>';
+    if (it.text) h += '<blockquote class="reading" lang="de">' + esc(it.text) + '</blockquote>';
+    if (it.audio) h += '<button class="btn" data-act="say" data-text="' + esc(it.audio) + '">Sesi çal</button>';
+    if (it.type === 'type') {
+      h += answerInput(t.answered, t.given);
+      h += t.answered ? plFeedback(t, it)
+        : '<div class="row"><button class="btn btn-primary" data-primary data-act="pl-type">Kontrol et</button>' +
+          '<button class="btn btn-quiet" data-act="pl-choose" data-i="-1">Bilmiyorum</button></div>';
+      return h;
+    }
+    h += '<div class="opts"' + (it.optLang ? ' lang="' + it.optLang + '"' : '') + '>' + it.options.map(function (o, i) {
+      var cls = '';
+      if (t.answered) { if (i === it.answer) cls = ' is-right'; else if (i === t.chosen) cls = ' is-wrong'; }
+      return '<button class="opt' + cls + '" data-act="pl-choose" data-i="' + i + '"' + (t.answered ? ' disabled' : '') + '>' + esc(o) + '</button>';
+    }).join('') + '</div>';
+    h += t.answered ? plFeedback(t, it) : '<button class="btn btn-quiet wide" data-act="pl-choose" data-i="-1">Bilmiyorum</button>';
+    return h;
+  }
+  function plFeedback(t, it) {
+    var right = it.type === 'type' ? it.answer.de : it.options[it.answer];
+    var deLang = it.type === 'type' || it.optLang === 'de';
+    return '<div class="fb ' + (t.lastCorrect ? 'ok' : 'bad') + '" role="status"><strong>' + (t.lastCorrect ? 'Doğru.' : 'Doğrusu:') + '</strong>' +
+      (t.lastCorrect ? '' : ' <span' + (deLang ? ' lang="de"' : '') + '>' + esc(right) + '</span>') + '</div>' +
+      '<button class="btn btn-primary wide" data-primary data-act="pl-next">Sonraki</button>';
+  }
+  function plStart() {
+    ui.tmp.pl = { stage: 'A1', items: DATA.placement.A1.slice(), idx: 0, results: [], scores: {}, answered: false, chosen: null, lastCorrect: null, given: '' };
+    ui.tmp.focus = true;
+    render();
+  }
+  function plAnswer(correct, chosen, given) {
+    var t = ui.tmp.pl, it = t.items[t.idx];
+    t.answered = true; t.chosen = chosen; t.lastCorrect = correct; t.given = given || '';
+    t.results.push({ id: it.id, stage: t.stage, skill: it.skill, correct: correct, item: it });
+    render();
+  }
+  function plChoose(i) {
+    var t = ui.tmp.pl; if (!t || t.answered) return;
+    var it = t.items[t.idx];
+    if (i < 0) { plAnswer(false, -1, ''); return; }
+    plAnswer(i === it.answer, i, '');
+  }
+  function plType() {
+    var t = ui.tmp.pl; if (!t || t.answered) return;
+    var it = t.items[t.idx], v = ($('#ans') || {}).value || '';
+    var r = C.checkAnswer(v, it.answer.de, it.answer.alt);
+    if (r.status === 'empty') { toast('Önce cevabını yaz ya da “Bilmiyorum”a bas.'); return; }
+    plAnswer(r.status !== 'wrong', null, v);
+  }
+  function plNext() {
+    var t = ui.tmp.pl; if (!t) return;
+    t.idx++; t.answered = false; t.chosen = null; t.given = '';
+    if (t.idx < t.items.length) { ui.tmp.focus = true; render(); return; }
+    var score = t.results.filter(function (r) { return r.stage === t.stage && r.correct; }).length;
+    t.scores[t.stage] = score;
+    if (t.stage === 'A1' && score >= 6) { t.stage = 'A2'; t.items = DATA.placement.A2.slice(); t.idx = 0; render(); return; }
+    if (t.stage === 'A1' && score <= 3) { t.stage = 'A0'; t.items = DATA.placement.A0.slice(); t.idx = 0; render(); return; }
+    plFinish();
+  }
+  function plFinish() {
+    var t = ui.tmp.pl, lv = C.placementLevel(t.scores), per = {}, seeded = 0;
+    t.results.forEach(function (r) {
+      per[r.skill] = per[r.skill] || [0, 0]; per[r.skill][1]++; if (r.correct) per[r.skill][0]++;
+      if (!r.correct && r.item.card && addCard('pl-' + r.id, r.item.card.tr, r.item.card.de, r.item.card.alt, 'placement', 1, 1)) seeded++;
+    });
+    state.placement = { level: lv.level, note: lv.note, scores: t.scores, perSkill: per, date: today(), seeded: seeded, asked: t.results.length };
+    ui.tmp.pl = null;
+    markDone('placement');
+    render();
+  }
+  function placementResult(p) {
+    var skills = Object.keys(p.perSkill || {}).map(function (k) {
+      var v = p.perSkill[k];
+      return '<div class="bar"><span>' + esc(k) + '</span>' + barTrack(v[1] ? v[0] / v[1] : 0) + '<span>' + v[0] + '/' + v[1] + '</span></div>';
+    }).join('');
+    return '<section class="result"><p class="meta">Tahmini seviye</p><p class="level">' + esc(p.level) + '</p><p>' + esc(p.note) + '</p>' +
+      '<div class="bars">' + skills + '</div>' +
+      (p.seeded ? '<p class="fb near">Bilemediğin ' + p.seeded + ' kalıp tekrar destesine eklendi; ilk tekrarları yarın.</p>' : '') +
+      '<p class="hint">Kaba bir tahmin: konuşma ölçülmedi, dinleme sentetik sesle yapıldı.</p>' +
+      '<div class="row"><button class="btn btn-primary" data-act="back">Bugün’e dön</button>' +
+      '<button class="btn btn-quiet" data-act="pl-restart">Testi yeniden yap</button></div></section>';
+  }
+
+  // learn
+  function viewLearn(c) {
+    var chunks = c.chunks || [];
+    var L = ui.tmp.learn;
+    if (!L) {
+      if (!chunks.length) { if (!session(state.programDay).blocks.learn) markDone('learn'); return learnDoneView(c, null); }
+      if (session(state.programDay).blocks.learn) return learnDoneView(c, null);
+      L = ui.tmp.learn = { phase: 'intro', idx: 0, known: {}, queue: [], first: {}, check: null, given: '', practice: false };
+    }
+    if (L.phase === 'intro') {
+      return (state.programDay === 1 && c.grammar ? grammarCard(c.grammar, 'Bugünün kalıbı') : '') +
+        '<p class="task">' + chunks.length + ' kalıp. Her birini dinle, iki kez sesli söyle ve deftere elle yaz. Ardından aynı gün hatırlama turu gelir.</p>' +
+        '<button class="btn btn-primary wide" data-primary data-act="learn-begin">Başla</button>';
+    }
+    if (L.phase === 'meet') {
+      var ch = chunks[L.idx];
+      return '<p class="meta">Kalıp ' + (L.idx + 1) + ' / ' + chunks.length + '</p>' +
+        '<p class="de" lang="de">' + esc(ch.de) + '</p><p class="tr">' + esc(ch.tr) + '</p>' +
+        '<p class="hint">Dinle. İki kez sesli söyle. Deftere elle yaz.</p>' +
+        '<div class="row"><button class="btn" data-act="say" data-text="' + esc(ch.de) + '">Dinle</button>' +
+        (L.practice ? '' : '<button class="btn btn-quiet" data-act="learn-known">Zaten biliyorum</button>') +
+        '<button class="btn btn-primary" data-primary data-act="learn-next">Sonraki</button></div>';
+    }
+    if (L.phase === 'recall') {
+      var item = findChunk(c, L.queue[0]);
+      return '<p class="meta">Aynı gün hatırlama: ' + L.queue.length + ' kaldı</p>' +
+        '<p class="tr big">' + esc(item.tr) + '</p>' + answerInput(!!L.check, L.given) +
+        (L.check ? feedback(L.check) + '<button class="btn btn-primary wide" data-primary data-act="learn-recall-next">Sonraki</button>'
+          : '<button class="btn btn-primary wide" data-primary data-act="learn-check">Kontrol et</button>');
+    }
+    return learnDoneView(c, L);
+  }
+  function learnDoneView(c, L) {
+    var st = session(state.programDay).stats.recall || [0, 0];
+    var knownN = L ? Object.keys(L.known).length : 0, n = (c.chunks || []).length;
+    return '<section class="result"><p class="level">Tamam.</p>' +
+      '<p>' + n + ' kalıp tekrar destesinde. İlk tekrarları yarın' + (knownN ? '; bildiğin ' + knownN + ' kalıp bir hafta sonra' : '') + '.</p>' +
+      (st[1] ? '<p>İlk denemede ' + st[0] + ' / ' + st[1] + ' doğru.</p>' : '') +
+      '<div class="row"><button class="btn btn-primary" data-act="back">Bugün’e dön</button>' +
+      (n ? '<button class="btn btn-quiet" data-act="learn-again">Kalıpları yeniden çalış</button>' : '') + '</div></section>';
+  }
+  function learnBegin() {
+    var c = getDay(state.programDay), L = ui.tmp.learn; if (!L) return;
+    L.phase = 'meet'; L.idx = 0;
+    render();
+    TTS.speak(c.chunks[0].de);
+  }
+  function learnAdvance(markKnown) {
+    var c = getDay(state.programDay), L = ui.tmp.learn; if (!L || L.phase !== 'meet') return;
+    var ch = c.chunks[L.idx];
+    if (markKnown && !L.practice) L.known[ch.id] = true;
+    L.idx++;
+    if (L.idx < c.chunks.length) { render(); TTS.speak(c.chunks[L.idx].de); return; }
+    L.phase = 'recall';
+    L.queue = shuffle(c.chunks.filter(function (x) { return !L.known[x.id]; }).map(function (x) { return x.id; }));
+    if (!L.queue.length) { learnFinish(); return; }
+    TTS.stop();
+    ui.tmp.focus = true;
+    render();
+  }
+  function learnCheck() {
+    var c = getDay(state.programDay), L = ui.tmp.learn; if (!L || L.check) return;
+    var item = findChunk(c, L.queue[0]), v = ($('#ans') || {}).value || '';
+    var r = C.checkAnswer(v, item.de, item.alt);
+    if (r.status === 'empty') { toast('Önce Almancasını yaz.'); return; }
+    L.check = r; L.given = v;
+    if (L.first[item.id] === undefined) { L.first[item.id] = r.status !== 'wrong'; if (!L.practice) bump('recall', r.status !== 'wrong'); }
+    render();
+    TTS.speak(r.target);
+  }
+  function learnRecallNext() {
+    var L = ui.tmp.learn; if (!L || !L.check) return;
+    var id = L.queue.shift();
+    if (L.check.status === 'wrong') L.queue.push(id);
+    L.check = null; L.given = '';
+    if (!L.queue.length) { learnFinish(); return; }
+    ui.tmp.focus = true;
+    render();
+  }
+  function learnFinish() {
+    var c = getDay(state.programDay), L = ui.tmp.learn;
+    if (!L.practice) {
+      c.chunks.forEach(function (ch) {
+        if (L.known[ch.id]) addCard(ch.id, ch.tr, ch.de, ch.alt, 'chunk', 3, 7);
+        else addCard(ch.id, ch.tr, ch.de, ch.alt, 'chunk', 1, 1);
+      });
+      markDone('learn');
+    }
+    L.phase = 'done';
+    render();
+  }
+  function learnAgain() {
+    var c = getDay(state.programDay);
+    ui.tmp.learn = { phase: 'meet', idx: 0, known: {}, queue: [], first: {}, check: null, given: '', practice: true };
+    render();
+    TTS.speak(c.chunks[0].de);
+  }
+
+  // listen + shadowing
+  function rateChips() {
+    var r = state.settings.rate;
+    return '<div class="rate" role="group" aria-label="Konuşma hızı"><span>Hız:</span>' + [[0.7, 'Yavaş'], [0.85, 'Orta'], [1, 'Normal']].map(function (p) {
+      var on = Math.abs(r - p[0]) < 0.01;
+      return '<button class="chip' + (on ? ' is-on' : '') + '" data-act="rate" data-v="' + p[0] + '" aria-pressed="' + on + '">' + p[1] + '</button>';
+    }).join('') + '</div>';
+  }
+  function viewListen(c) {
+    var LS = ui.tmp.ls || (ui.tmp.ls = { showDe: false, showTr: false, playing: false, cur: -1 });
+    var d = c.dialogue, sp = d.speakers || { A: 'A', B: 'B' };
+    var lines = d.lines.map(function (ln, i) {
+      var key = 'd' + state.programDay + '-l' + i, has = !!state.recordings[key], recOn = !!(Rec.mr && Rec.key === key);
+      return '<li class="line' + (LS.cur === i ? ' is-cur' : '') + '" data-line="' + i + '"><span class="who">' + esc(sp[ln.s] || ln.s) + '</span>' +
+        '<p class="de' + (LS.showDe ? '' : ' is-hidden') + '" lang="de">' + (LS.showDe ? esc(ln.de) : '• • •') + '</p>' +
+        (LS.showTr ? '<p class="tr">' + esc(ln.tr) + '</p>' : '') +
+        '<div class="acts"><button class="btn mini" data-act="say" data-text="' + esc(ln.de) + '">Dinle</button>' +
+        '<button class="btn mini' + (recOn ? ' rec-on' : '') + '" data-act="rec" data-key="' + key + '">' + (recOn ? 'Durdur' : 'Kaydet') + '</button>' +
+        (has ? '<button class="btn mini" data-act="play-rec" data-reckey="' + key + '" data-key="' + key + '">Kendini dinle</button>' : '') +
+        '</div></li>';
+    }).join('');
+    return '<p class="task">' + esc(d.title) + '</p>' +
+      '<ol class="steps"><li>Metin kapalıyken dinle.</li><li>Bir kez daha dinle.</li><li>Metni ve Türkçesini aç, bilmediklerine bak.</li>' +
+      '<li>Molalı çal: her satırdan sonra durakta sesli tekrar et.</li><li>Konuşmacıyla aynı anda söyle (shadowing).</li>' +
+      '<li>Metni kapat, yine aynı anda söyle.</li><li>Bir satırını kaydet, modelle art arda dinle.</li></ol>' +
+      '<div class="row"><button class="btn btn-primary" data-act="play-all">' + (LS.playing ? 'Durdur' : 'Hepsini çal') + '</button>' +
+      '<button class="btn" data-act="toggle-de" aria-pressed="' + LS.showDe + '">' + (LS.showDe ? 'Metni gizle' : 'Metni göster') + '</button>' +
+      '<button class="btn" data-act="toggle-tr" aria-pressed="' + LS.showTr + '">' + (LS.showTr ? 'Türkçeyi gizle' : 'Türkçeyi göster') + '</button></div>' +
+      '<label class="check"><input type="checkbox" data-change="pause"' + (state.settings.pauseMode ? ' checked' : '') + '> Satır arasında tekrar molası</label>' +
+      rateChips() +
+      '<ul class="lines">' + lines + '</ul>' +
+      '<button class="btn btn-primary wide" data-act="block-done" data-key="listen">Tamamladım</button>';
+  }
+  function pauseFor(text) {
+    var w = String(text).split(/\s+/).length;
+    return Math.max(1500, Math.round(w * 650 / (state.settings.rate || 0.9)));
+  }
+  function markLine(i) {
+    $$('.line').forEach(function (el) {
+      if (Number(el.getAttribute('data-line')) === i) el.classList.add('is-cur'); else el.classList.remove('is-cur');
+    });
+  }
+  function playAll() {
+    var LS = ui.tmp.ls; if (!LS) return;
+    if (LS.playing) { LS.playing = false; LS.cur = -1; TTS.stop(); render(); return; }
+    var lines = getDay(state.programDay).dialogue.lines, myTmp = ui.tmp, i = 0;
+    LS.playing = true; LS.cur = 0;
+    render();
+    function step() {
+      if (!LS.playing || ui.tmp !== myTmp) return;
+      if (i >= lines.length) { LS.playing = false; LS.cur = -1; render(); return; }
+      LS.cur = i; markLine(i);
+      TTS.speak(lines[i].de).then(function () {
+        if (!LS.playing || ui.tmp !== myTmp) return;
+        var wait = state.settings.pauseMode ? pauseFor(lines[i].de) : 300;
+        i++;
+        return sleep(wait).then(step);
+      });
+    }
+    step();
+  }
+  function recToggle(key) {
+    if (Rec.mr) {
+      Rec.stop().then(function (r) { if (r && r.key !== 'mic-test') toast('Kaydedildi (' + r.dur + ' sn).'); render(); });
+      return;
+    }
+    TTS.stop();
+    Rec.start(key).then(function (ok) { if (ok) render(); });
+  }
+
+  // produce
+  function viewProduce(c) {
+    var items = c.produce || [];
+    var P = ui.tmp.pr || (ui.tmp.pr = { part: items.length ? 'A' : 'B', idx: 0, check: null, given: '', tag: null });
+    if (P.part === 'A') {
+      var it = items[P.idx];
+      return '<p class="meta">Türkçe → Almanca: ' + (P.idx + 1) + ' / ' + items.length + '</p><p class="tr big">' + esc(it.tr) + '</p>' +
+        answerInput(!!P.check, P.given) +
+        (P.check ? feedback(P.check) + (P.check.status === 'wrong' ? tagPicker(P.tag) : '') +
+          '<button class="btn btn-primary wide" data-primary data-act="pr-next">Sonraki</button>'
+          : '<button class="btn btn-primary wide" data-primary data-act="pr-check">Kontrol et</button>');
+    }
+    var drafts = ui.tmp.drafts || {};
+    var qs = (c.questions || []).map(function (q) {
+      var saved = findAnswer(q.id), key = 'ans-' + q.id, has = !!state.recordings[key], recOn = !!(Rec.mr && Rec.key === key);
+      var val = drafts['qa-' + q.id] != null ? drafts['qa-' + q.id] : (saved ? saved.answer : '');
+      return '<li class="qa"><p class="de" lang="de">' + esc(q.q) + '</p><details><summary>Türkçesi</summary><p class="tr">' + esc(q.tr) + '</p></details>' +
+        '<div class="row"><button class="btn mini" data-act="say" data-text="' + esc(q.q) + '">Soruyu dinle</button>' +
+        '<button class="btn mini' + (recOn ? ' rec-on' : '') + '" data-act="rec" data-key="' + key + '">' + (recOn ? 'Durdur' : 'Sesli cevapla') + '</button>' +
+        (has ? '<button class="btn mini" data-act="play-rec" data-reckey="' + key + '" data-key="' + key + '">Cevabını dinle</button>' : '') + '</div>' +
+        '<label class="sr" for="qa-' + q.id + '">Cevabın</label><textarea id="qa-' + q.id + '" class="answer" lang="de" autocapitalize="sentences" spellcheck="false" placeholder="Kendi cevabını yaz">' + esc(val) + '</textarea>' +
+        '<button class="btn" data-act="qa-save" data-id="' + q.id + '">' + (saved ? 'Güncelle' : 'Kaydet') + '</button>' +
+        (saved ? '<p class="meta">Kalıp: <span lang="de">' + esc(q.model) + '</span></p>' : '') + '</li>';
+    }).join('');
+    var st = session(state.programDay).stats.produce || [0, 0];
+    return (st[1] ? '<p class="meta">Çeviri: ' + st[0] + ' / ' + st[1] + ' doğru.</p>' : '') +
+      (qs ? '<h2 class="sub">Sorular</h2><p class="hint">Kendi hayatından cevap ver. Düzeltmesi haftalık dökümle gelir.</p><ul class="qas">' + qs + '</ul>' : '') +
+      '<button class="btn btn-primary wide" data-act="block-done" data-key="produce">Tamamladım</button>';
+  }
+  function prCheck() {
+    var c = getDay(state.programDay), P = ui.tmp.pr; if (!P || P.check) return;
+    var it = c.produce[P.idx], v = ($('#ans') || {}).value || '';
+    var r = C.checkAnswer(v, it.de, it.alt);
+    if (r.status === 'empty') { toast('Önce Almancasını yaz.'); return; }
+    P.check = r; P.given = v; P.tag = r.status === 'wrong' && r.suggestTag != null ? r.suggestTag : null;
+    bump('produce', r.status !== 'wrong');
+    save();
+    render();
+    TTS.speak(r.target);
+  }
+  function prNext() {
+    var c = getDay(state.programDay), P = ui.tmp.pr; if (!P || !P.check) return;
+    var it = c.produce[P.idx];
+    if (P.check.status === 'wrong') {
+      logError(it.tr, it.de, P.given, P.tag);
+      addCard('pr-' + it.id, it.tr, it.de, it.alt, 'produce', 1, 1);
+      save();
+    }
+    P.idx++; P.check = null; P.given = ''; P.tag = null;
+    if (P.idx >= c.produce.length) P.part = 'B'; else ui.tmp.focus = true;
+    render();
+  }
+  function qaSave(id) {
+    var c = getDay(state.programDay), q = (c.questions || []).filter(function (x) { return x.id === id; })[0];
+    var ta = $('#qa-' + id), v = ta ? ta.value.trim() : '';
+    if (!q) return;
+    if (!v) { toast('Önce cevabını yaz.'); return; }
+    var ex = findAnswer(id);
+    if (ex) { ex.answer = v; ex.date = today(); }
+    else state.answers.push({ id: id, day: state.programDay, q: q.q, answer: v, date: today() });
+    if (ui.tmp.drafts) delete ui.tmp.drafts['qa-' + id];
+    save();
+    toast('Cevap kaydedildi.');
+    render();
+  }
+
+  // grammar
+  function viewGrammar(c) {
+    return (c.grammar ? grammarCard(c.grammar) : '<p class="hint">Bu gün için gramer notu yok.</p>') +
+      '<p class="hint">Örnekleri dinle ve sesli tekrar et. Sonra her kurala kendi cümleni kur ve deftere yaz.</p>' +
+      '<button class="btn btn-primary wide" data-act="block-done" data-key="grammar">Tamamladım</button>';
+  }
+
+  // review (block and tab)
+  function nextDueText() {
+    var cards = vals(state.cards);
+    if (!cards.length) return 'Henüz kart yok. Kartlar “Yeni kalıplar” bloğundan gelir.';
+    var t = today(), next = null;
+    cards.forEach(function (c) { if (c.due > t && (!next || c.due < next)) next = c.due; });
+    if (!next) return 'Bekleyen kart yok.';
+    var n = cards.filter(function (c) { return c.due === next; }).length, d = C.daysBetween(t, next);
+    return 'Sonraki tekrar ' + (d === 1 ? 'yarın' : d + ' gün sonra') + ': ' + n + ' kart.';
+  }
+  function reviewBody(isBlock) {
+    var R = ui.tmp.rev;
+    if (!R) R = ui.tmp.rev = { queue: dueCards().map(function (c) { return c.id; }), idx: 0, check: null, given: '', tag: null, ok: 0, n: 0 };
+    var back = isBlock ? '<button class="btn btn-primary wide" data-act="back">Bugün’e dön</button>' : '';
+    if (!R.queue.length) {
+      if (isBlock && !session(state.programDay).blocks.review) markDone('review');
+      return '<section class="empty"><h2 class="sub">Bugün tekrar yok.</h2><p>' + esc(nextDueText()) + '</p>' + back + '</section>';
+    }
+    if (R.idx >= R.queue.length) {
+      if (isBlock && !session(state.programDay).blocks.review) markDone('review');
+      return '<section class="result"><p class="level">' + R.ok + ' / ' + R.n + '</p><p>Tekrar bitti. Yanlışlar yarın yeniden gelecek.</p>' + back + '</section>';
+    }
+    var card = state.cards[R.queue[R.idx]];
+    var h = '<p class="meta">Kart ' + (R.idx + 1) + ' / ' + R.queue.length + '</p><p class="tr big">' + esc(card.tr) + '</p>' + answerInput(!!R.check, R.given);
+    if (!R.check) return h + '<button class="btn btn-primary wide" data-primary data-act="rv-check">Kontrol et</button>';
+    h += feedback(R.check);
+    if (R.check.status === 'wrong') return h + tagPicker(R.tag) + '<button class="btn btn-primary wide" data-primary data-act="rv-grade" data-g="wrong">Sonraki</button>';
+    return h + '<div class="row two"><button class="btn" data-act="rv-grade" data-g="hard">Zorlandım</button>' +
+      '<button class="btn btn-primary" data-primary data-act="rv-grade" data-g="easy">Kolaydı</button></div>';
+  }
+  function rvCheck() {
+    var R = ui.tmp.rev; if (!R || R.check) return;
+    var card = state.cards[R.queue[R.idx]], v = ($('#ans') || {}).value || '';
+    var r = C.checkAnswer(v, card.de, card.alt);
+    if (r.status === 'empty') { toast('Önce Almancasını yaz.'); return; }
+    R.check = r; R.given = v; R.tag = r.status === 'wrong' && r.suggestTag != null ? r.suggestTag : null;
+    render();
+    TTS.speak(r.target);
+  }
+  function rvGrade(g) {
+    var R = ui.tmp.rev; if (!R || !R.check) return;
+    var card = state.cards[R.queue[R.idx]], ok = g !== 'wrong';
+    if (!ok) logError(card.tr, card.de, R.given, R.tag);
+    C.schedule(card, g, today());
+    R.n++; if (ok) R.ok++;
+    bump('review', ok);
+    save();
+    R.idx++; R.check = null; R.given = ''; R.tag = null;
+    ui.tmp.focus = R.idx < R.queue.length;
+    render();
+  }
+
+  // baseline recording (day 0)
+  function viewBaseline() {
+    var key = 'baseline-0', has = !!state.recordings[key], on = !!(Rec.mr && Rec.key === key), can = Rec.supported();
+    return '<p class="task">Kendini 1–2 dakika Almanca anlat: adın, nerelisin, nerede yaşıyorsun, mesleğin, ailen, bir günün. Takılınca dur ama Türkçeye geçme.</p>' +
+      '<p class="hint">30. gün aynı görevi yeniden kaydedip ikisini art arda dinleyeceksin.</p>' +
+      (can ? '<div class="recbox"><button class="btn ' + (on ? 'rec-on' : 'btn-primary') + ' wide" data-act="rec" data-key="' + key + '">' +
+        (on ? 'Kaydı durdur' : (has ? 'Yeniden kaydet' : 'Kaydı başlat')) + '</button>' +
+        (on ? '<p class="rectime" id="rectime">0:00</p>' : '') +
+        (has && !on ? '<button class="btn wide" data-act="play-rec" data-reckey="' + key + '" data-key="' + key + '">Kaydı dinle (' + state.recordings[key].dur + ' sn)</button>' : '') + '</div>'
+        : '<p class="fb near">Bu tarayıcı ses kaydını desteklemiyor. Bu bloğu atlayabilirsin.</p>') +
+      '<button class="btn ' + (has || !can ? 'btn-primary' : 'btn-quiet') + ' wide" data-act="block-done" data-key="baseline"' + (has || !can ? '' : ' disabled') + '>Tamamladım</button>';
+  }
+
+  // ---------- progress ----------
+  function phaseGate() {
+    var ph = phaseOf(Math.min(state.programDay, TOTAL_DAYS));
+    var ids = Object.keys(state.cards).filter(function (id) { var m = /^d(\d+)-/.exec(id); return m && +m[1] >= ph.from && +m[1] <= ph.to; });
+    if (!ids.length) return 'Faz ' + ph.n + ' kartları henüz yok.';
+    var strong = ids.filter(function (id) { return (state.cards[id].box || 1) >= 2; }).length;
+    var share = Math.round(100 * strong / ids.length);
+    var a = accOf(completedDays().slice(-3)), accP = a[1] ? Math.round(100 * a[0] / a[1]) : 0;
+    var ready = share >= 80 && accP >= 75;
+    return 'Faz ' + ph.n + ' kartlarının %' + share + '’i en az bir kez tutuldu; son 3 günün doğruluğu %' + accP + '. ' +
+      (ready ? 'Sonraki faza hazırsın.' : 'Eşik: %80 kart ve %75 doğruluk.');
+  }
+  function viewProgress() {
+    var cards = vals(state.cards), boxes = [0, 0, 0, 0, 0, 0, 0];
+    cards.forEach(function (c) { boxes[Math.min(c.box || 1, 6)]++; });
+    var labels = ['', 'Kutu 1 (yarın)', 'Kutu 2 (3 gün)', 'Kutu 3 (7 gün)', 'Kutu 4 (14 gün)', 'Kutu 5 (30 gün)', 'Ustalaşan'];
+    var maxB = Math.max.apply(null, boxes.concat([1]));
+    var boxBars = boxes.slice(1).map(function (n, i) {
+      return '<div class="bar"><span>' + labels[i + 1] + '</span>' + barTrack(n / maxB) + '<span>' + n + '</span></div>';
+    }).join('');
+    var done = completedDays();
+    var acc = done.slice(-7).map(function (d) {
+      var a = accOf([d]);
+      return '<div class="bar"><span>Gün ' + d + '</span>' + barTrack(a[1] ? a[0] / a[1] : 0) + '<span>' + (a[1] ? Math.round(100 * a[0] / a[1]) + '%' : '–') + '</span></div>';
+    }).join('');
+    var b0 = state.recordings['baseline-0'], b30 = state.recordings['baseline-30'], on30 = !!(Rec.mr && Rec.key === 'baseline-30');
+    return topHeader(state.programDay) + '<h1 class="bh-title">İlerleme</h1>' +
+      '<dl class="facts"><div><dt>Tamamlanan gün</dt><dd>' + done.length + '</dd></div><div><dt>Seri</dt><dd>' + streak() + '</dd></div>' +
+      '<div><dt>Kart</dt><dd>' + cards.length + '</dd></div><div><dt>Ustalaşan</dt><dd>' + boxes[6] + '</dd></div></dl>' +
+      '<h2 class="sub">Kartların durumu</h2><div class="bars">' + boxBars + '</div>' +
+      '<h2 class="sub">Doğruluk, son 7 gün</h2>' + (acc ? '<div class="bars">' + acc + '</div>' : '<p class="hint">Gün bitirdikçe burada görünür.</p>') +
+      '<h2 class="sub">Faz geçişi</h2><p>' + esc(phaseGate()) + '</p>' +
+      '<h2 class="sub">Seviye testi</h2>' + (state.placement ? '<p><strong>' + esc(state.placement.level) + '</strong> (' + esc(state.placement.date) + ')</p>' : '<p class="hint">Henüz yapılmadı.</p>') +
+      '<h2 class="sub">Ses kayıtları</h2><div class="row">' +
+      (b0 ? '<button class="btn" data-act="play-rec" data-reckey="baseline-0" data-key="baseline-0">Gün 0 (' + b0.dur + ' sn)</button>' : '<span class="hint">Gün 0 kaydı yok.</span>') +
+      (b30 ? '<button class="btn" data-act="play-rec" data-reckey="baseline-30" data-key="baseline-30">Gün 30 (' + b30.dur + ' sn)</button>' : '') + '</div>' +
+      (Rec.supported() ? '<button class="btn' + (on30 ? ' rec-on' : '') + ' wide" data-act="rec" data-key="baseline-30">' +
+        (on30 ? 'Kaydı durdur' : (b30 ? 'Gün 30 kaydını yenile' : 'Gün 30 kaydını yap')) + '</button>' + (on30 ? '<p class="rectime" id="rectime">0:00</p>' : '') : '') +
+      '<p class="hint">Gün 30 kaydında Gün 0’daki görevin aynısını yap.</p>';
+  }
+
+  // ---------- errors ----------
+  function viewErrors() {
+    if (!state.errors.length) {
+      return '<h1 class="bh-title">Hata defteri</h1><section class="empty"><p>Henüz hata yok. Tekrar ve üretim bloklarındaki yanlış cevaplar buraya düşer.</p></section>';
+    }
+    var counts = {}, last = {}, untagged = 0;
+    state.errors.forEach(function (e) { if (!e.tag) { untagged++; return; } counts[e.tag] = (counts[e.tag] || 0) + 1; last[e.tag] = e; });
+    var top = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; }).slice(0, 5);
+    var topHtml = top.map(function (t, i) {
+      var e = last[t];
+      return '<li><span class="rank">' + (i + 1) + '</span><span><strong>' + esc(t) + '</strong> (' + counts[t] + ')' +
+        '<span class="tr-s">' + esc(e.tr) + '</span><span class="de-s" lang="de">' + esc(e.expected) + '</span></span></li>';
+    }).join('');
+    var list = state.errors.slice().reverse().slice(0, 40).map(function (e) {
+      return '<li><span class="tr-s">' + esc(e.tr) + '</span><span class="de-s" lang="de">' + esc(e.expected) + '</span>' +
+        '<span class="given" lang="de">Senin: ' + esc(e.given) + '</span><span class="meta">Gün ' + e.day + (e.tag ? ', ' + esc(e.tag) : '') + '</span></li>';
+    }).join('');
+    return '<h1 class="bh-title">Hata defteri</h1><h2 class="sub">En sık 5 hata</h2>' +
+      (top.length ? '<ol class="top5">' + topHtml + '</ol>' : '<p class="hint">Hatalarını etiketledikçe burada sıralanır.</p>') +
+      (untagged ? '<p class="meta">' + untagged + ' hata etiketsiz.</p>' : '') +
+      '<h2 class="sub">Son hatalar</h2><ul class="errs">' + list + '</ul>';
+  }
+
+  // ---------- settings ----------
+  function viewSettings() {
+    var vs = TTS.voices, cur = TTS.pick();
+    var voiceSel = vs.length
+      ? '<label class="field"><span>Almanca ses</span><select data-change="voice">' + vs.map(function (v) {
+        return '<option value="' + esc(v.voiceURI) + '"' + (cur && v.voiceURI === cur.voiceURI ? ' selected' : '') + '>' + esc(v.name + ' (' + v.lang + ')') + '</option>';
+      }).join('') + '</select></label>'
+      : '<p class="fb near">Bu cihazda Almanca ses bulunamadı. iPhone’da Ayarlar > Erişilebilirlik > Seslendirilen İçerik > Sesler’den Almanca bir ses indir. Menü adları iOS sürümüne göre değişebilir.</p>';
+    var micOn = !!(Rec.mr && Rec.key === 'mic-test'), micHas = !!AudioCache.urls['mic-test'];
+    var extra = state.extraDays.map(function (d) { return d.day; }).sort(function (a, b) { return a - b; });
+    return '<h1 class="bh-title">Ayarlar</h1>' +
+      '<h2 class="sub">Ses</h2>' + voiceSel +
+      '<label class="field"><span>Hız: <output id="rate-out">' + Number(state.settings.rate).toFixed(2) + '</output></span>' +
+      '<input type="range" min="0.6" max="1.1" step="0.05" value="' + state.settings.rate + '" data-change="rate"></label>' +
+      '<label class="check"><input type="checkbox" data-change="pause"' + (state.settings.pauseMode ? ' checked' : '') + '> Diyalogda satır arasında tekrar molası</label>' +
+      '<div class="row"><button class="btn" data-act="say" data-text="Guten Tag! Das ist ein kurzer Test.">Sesi test et</button>' +
+      '<button class="btn' + (micOn ? ' rec-on' : '') + '" data-act="rec" data-key="mic-test">' + (micOn ? 'Durdur' : 'Mikrofonu test et') + '</button>' +
+      (micHas ? '<button class="btn" data-act="play-rec" data-key="mic-test">Test kaydını dinle</button>' : '') + '</div>' +
+      '<h2 class="sub">Dikte</h2><p class="hint">Cevapları sesli vermek için iPhone’a Almanca klavye ekle: Ayarlar > Genel > Klavye > Klavyeler > Yeni Klavye Ekle > Almanca. ' +
+      'Cevap kutusunda Almanca klavyeye geçip mikrofon tuşuna bas. Dikte seni yanlış yazıyorsa o kelimenin telaffuzuna bak. Menü adları iOS sürümüne göre değişebilir.</p>' +
+      '<h2 class="sub">Claude ile döngü</h2><p class="hint">Haftada bir dökümü kopyala ve Claude’a yapıştır. Gelen içerik paketini aşağıya ekle.</p>' +
+      '<button class="btn btn-primary wide" data-act="copy-dump">Haftalık dökümü kopyala</button>' +
+      '<label class="field"><span>İçerik paketi (JSON)</span><textarea id="pack" class="answer" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea></label>' +
+      '<button class="btn wide" data-act="import-pack">Paketi ekle</button>' +
+      (extra.length ? '<p class="meta">Eklenmiş günler: ' + extra.join(', ') + '</p>' : '') +
+      '<h2 class="sub">Yedek</h2><p class="hint">Veriler yalnızca bu cihazda. Ara sıra yedeği kopyalayıp Notlar’a kaydet. Ses kayıtları yedeğe girmez.</p>' +
+      '<button class="btn wide" data-act="copy-backup">Yedeği kopyala</button>' +
+      '<label class="field"><span>Yedeği geri yükle</span><textarea id="restore" class="answer" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea></label>' +
+      '<button class="btn wide" data-act="restore">Yedeği geri yükle</button>' +
+      '<h2 class="sub">Sıfırla</h2><button class="btn btn-danger wide" data-act="reset">Tüm verileri sil</button>' +
+      '<p class="meta" style="margin-top:18px">Sprung v1. Veriler yalnızca bu cihazda.</p>';
+  }
+
+  function buildDump() {
+    var n = state.programDay, done = completedDays(), recent = done.slice(-7);
+    var sums = { recall: [0, 0], review: [0, 0], produce: [0, 0] };
+    recent.forEach(function (d) {
+      var st = (state.sessions[d] || {}).stats || {};
+      Object.keys(sums).forEach(function (k) { if (st[k]) { sums[k][0] += st[k][0]; sums[k][1] += st[k][1]; } });
+    });
+    function pct(p) { return p[1] ? Math.round(100 * p[0] / p[1]) + '% (' + p[0] + '/' + p[1] + ')' : '-'; }
+    var cards = vals(state.cards), boxes = [0, 0, 0, 0, 0, 0, 0];
+    cards.forEach(function (c) { boxes[Math.min(c.box || 1, 6)]++; });
+    var counts = {}, ex = {};
+    state.errors.forEach(function (e) { var t = e.tag || 'Etiketsiz'; counts[t] = (counts[t] || 0) + 1; (ex[t] = ex[t] || []).push(e); });
+    var top = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; }).slice(0, 5);
+    var weak = cards.filter(function (c) { return (c.lapses || 0) > 0; })
+      .sort(function (a, b) { return (b.lapses - a.lapses) || ((a.box || 1) - (b.box || 1)); }).slice(0, 10);
+    var answers = state.answers.filter(function (a) { return a.day > n - 8; });
+    var from = maxContentDay() + 1, to = Math.min(from + 6, TOTAL_DAYS);
+    var L = [];
+    L.push('SPRUNG HAFTALIK DÖKÜM');
+    L.push('Program günü: ' + n + ', tamamlanan gün: ' + done.length);
+    if (state.placement) {
+      L.push('Seviye testi: ' + state.placement.level + ' (' + Object.keys(state.placement.perSkill || {}).map(function (k) {
+        var v = state.placement.perSkill[k]; return k + ' ' + v[0] + '/' + v[1];
+      }).join(', ') + ')');
+    }
+    L.push('Son 7 gün doğruluk: hatırlama ' + pct(sums.recall) + ', tekrar ' + pct(sums.review) + ', üretim ' + pct(sums.produce));
+    L.push('Kartlar: kutu1 ' + boxes[1] + ', kutu2 ' + boxes[2] + ', kutu3 ' + boxes[3] + ', kutu4 ' + boxes[4] + ', kutu5 ' + boxes[5] + ', ustalaşan ' + boxes[6]);
+    L.push('');
+    L.push('En sık hatalar:');
+    if (!top.length) L.push('- yok');
+    top.forEach(function (t) {
+      L.push('- ' + t + ' (' + counts[t] + ')');
+      ex[t].slice(-2).forEach(function (e) { L.push('  TR: ' + e.tr + ' | Doğru: ' + e.expected + ' | Benim: ' + e.given); });
+    });
+    L.push('');
+    L.push('En çok unuttuğum kartlar:');
+    if (!weak.length) L.push('- yok');
+    weak.forEach(function (c) { L.push('- ' + c.de + ' (' + c.tr + '), unutma: ' + c.lapses); });
+    L.push('');
+    L.push('Serbest cevaplarım (düzelt, daha doğal versiyonunu ver):');
+    if (!answers.length) L.push('- yok');
+    answers.forEach(function (a) { L.push('- ' + a.q + ' -> ' + a.answer); });
+    L.push('');
+    if (from <= TOTAL_DAYS) {
+      L.push('İSTEK: Önce serbest cevaplarımı düzelt. Sonra bu döküme göre Gün ' + from + '–' + to + ' için içerik paketini tek bir JSON kod bloğu olarak ver.');
+      L.push('Kurallar: her gün bir görev etrafında; 12–14 kalıp, 8–10 satırlık diyalog, 5 üretim cümlesi, 3 kişisel soru, kısa gramer notu. ' +
+        'Zayıf yapılarımı yeni bağlamlarda tekrar getir. Gün 8’den itibaren her güne 2–3 tıbbi Almanca kalıp ekle. ' +
+        'Fazlar: 8–14 günlük hayat (rol yapma), 15–21 spontane anlatım, 22–30 gerçek hayat simülasyonu. Her kalıba kabul edilebilecek diğer doğru cevapları "alt" içine yaz.');
+      L.push('Şema: {"version":1,"days":[{"day":' + from + ',"title":"TR başlık","titleDe":"DE başlık","task":"TR görev",' +
+        '"grammar":{"title":"...","points":["..."],"examples":[{"de":"...","tr":"..."}]},' +
+        '"chunks":[{"id":"d' + from + '-01","de":"...","tr":"...","alt":["..."]}],' +
+        '"dialogue":{"title":"...","speakers":{"A":"...","B":"Kerem"},"lines":[{"s":"A","de":"...","tr":"..."}]},' +
+        '"produce":[{"id":"d' + from + '-p1","tr":"...","de":"...","alt":[]}],' +
+        '"questions":[{"id":"d' + from + '-q1","q":"...","tr":"...","model":"..."}]}]}');
+    } else {
+      L.push('İSTEK: 30 gün bitti. Başlangıç ve son durumu karşılaştırmama yardım et.');
+    }
+    return L.join('\n');
+  }
+  function validDay(d) {
+    return !!(d && typeof d.day === 'number' && d.day >= 1 && d.title && d.task &&
+      Array.isArray(d.chunks) && d.chunks.every(function (c) { return c && c.id && c.de && c.tr; }) &&
+      d.dialogue && Array.isArray(d.dialogue.lines) && d.dialogue.lines.every(function (l) { return l && l.de; }));
+  }
+  function importPack() {
+    var raw = (($('#pack') || {}).value || '').trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+    var obj;
+    try { obj = JSON.parse(raw); } catch (e) { toast('JSON okunamadı. Paketin tamamını yapıştırdığından emin ol.'); return; }
+    var days = Array.isArray(obj) ? obj : obj && obj.days;
+    if (!Array.isArray(days) || !days.length) { toast('Pakette “days” listesi yok.'); return; }
+    var bad = days.filter(function (d) { return !validDay(d); });
+    if (bad.length) { toast('Geçersiz gün var. Her günde day, title, task, chunks ve dialogue olmalı.'); return; }
+    days.forEach(function (d) {
+      d.produce = d.produce || []; d.questions = d.questions || [];
+      state.extraDays = state.extraDays.filter(function (x) { return x.day !== d.day; });
+      state.extraDays.push(d);
+    });
+    save();
+    render();
+    toast(days.length + ' gün eklendi.');
+  }
+  function restoreBackup() {
+    var raw = (($('#restore') || {}).value || '').trim();
+    try {
+      var s = JSON.parse(raw);
+      if (!s || s.v !== 1 || typeof s.cards !== 'object') throw new Error('bad');
+      state = hydrate(s);
+      save();
+      go('today');
+      toast('Yedek geri yüklendi.');
+    } catch (e) { toast('Yedek okunamadı. Kopyaladığın metnin tamamını yapıştır.'); }
+  }
+  function resetAll() {
+    if (!window.confirm('Tüm ilerleme, kartlar ve kayıtlar silinecek. Emin misin?')) return;
+    if (!window.confirm('Bu geri alınamaz. Siliyorum?')) return;
+    localStorage.removeItem(STORE_KEY);
+    state = defaultState();
+    if (AudioDB.ok) AudioDB.clear().catch(function () {});
+    AudioCache.urls = {};
+    save();
+    go('today');
+    toast('Tüm veriler silindi.');
+  }
+
+  // ---------- events ----------
+  var actions = {
+    'tab': function (el) { go(el.getAttribute('data-view')); },
+    'back': function () { go('today'); },
+    'open-block': function (el) { go('block', el.getAttribute('data-key')); },
+    'say': function (el) { TTS.speak(el.getAttribute('data-text')); },
+    'finish-day': finishDay,
+    'block-done': function (el) { markDone(el.getAttribute('data-key')); go('today'); toast('Blok tamamlandı.'); },
+    'pl-start': plStart,
+    'pl-restart': function () { state.placement = null; save(); plStart(); },
+    'pl-choose': function (el) { plChoose(Number(el.getAttribute('data-i'))); },
+    'pl-type': plType,
+    'pl-next': plNext,
+    'learn-begin': learnBegin,
+    'learn-next': function () { learnAdvance(false); },
+    'learn-known': function () { learnAdvance(true); },
+    'learn-check': learnCheck,
+    'learn-recall-next': learnRecallNext,
+    'learn-again': learnAgain,
+    'play-all': playAll,
+    'toggle-de': function () { if (ui.tmp.ls) { ui.tmp.ls.showDe = !ui.tmp.ls.showDe; render(); } },
+    'toggle-tr': function () { if (ui.tmp.ls) { ui.tmp.ls.showTr = !ui.tmp.ls.showTr; render(); } },
+    'rate': function (el) { state.settings.rate = Number(el.getAttribute('data-v')); save(); render(); },
+    'rec': function (el) { recToggle(el.getAttribute('data-key')); },
+    'play-rec': function (el) { AudioCache.play(el.getAttribute('data-key')); },
+    'pr-check': prCheck,
+    'pr-next': prNext,
+    'qa-save': function (el) { qaSave(el.getAttribute('data-id')); },
+    'tag': function (el) {
+      var T = ui.tmp.pr || ui.tmp.rev; if (!T) return;
+      var i = Number(el.getAttribute('data-i')); T.tag = T.tag === i ? null : i; render();
+    },
+    'rv-check': rvCheck,
+    'rv-grade': function (el) { rvGrade(el.getAttribute('data-g')); },
+    'copy-dump': function () { copyText(buildDump(), 'Döküm kopyalandı. Claude’a yapıştır.'); },
+    'import-pack': importPack,
+    'copy-backup': function () { copyText(JSON.stringify(state), 'Yedek kopyalandı.'); },
+    'restore': restoreBackup,
+    'reset': resetAll,
+    'modal-close': function () { var m = $('#modal'); m.hidden = true; m.innerHTML = ''; }
+  };
+
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest ? e.target.closest('[data-act]') : null;
+    if (!el || el.disabled) return;
+    var fn = actions[el.getAttribute('data-act')];
+    if (fn) { e.preventDefault(); fn(el, e); }
+  });
+  document.addEventListener('change', function (e) {
+    var el = e.target, k = el.getAttribute && el.getAttribute('data-change');
+    if (!k) return;
+    if (k === 'pause') { state.settings.pauseMode = !!el.checked; save(); }
+    if (k === 'rate') { state.settings.rate = Number(el.value); save(); var o = $('#rate-out'); if (o) o.textContent = state.settings.rate.toFixed(2); }
+    if (k === 'voice') { state.settings.voiceURI = el.value; save(); TTS.speak('Hallo! So klinge ich.'); }
+  });
+  document.addEventListener('input', function (e) {
+    var el = e.target;
+    if (el.id && el.id.indexOf('qa-') === 0) { ui.tmp.drafts = ui.tmp.drafts || {}; ui.tmp.drafts[el.id] = el.value; }
+    if (el.getAttribute && el.getAttribute('data-change') === 'rate') { var o = $('#rate-out'); if (o) o.textContent = Number(el.value).toFixed(2); }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && e.target.matches && e.target.matches('input.answer')) {
+      e.preventDefault();
+      var b = $('[data-primary]');
+      if (b && !b.disabled) b.click();
+    }
+  });
+
+  // ---------- start ----------
+  if (TTS.ok) {
+    TTS.load();
+    var onVoices = function () { TTS.load(); if (ui.view === 'settings') render(); };
+    if (window.speechSynthesis.addEventListener) window.speechSynthesis.addEventListener('voiceschanged', onVoices);
+    else window.speechSynthesis.onvoiceschanged = onVoices;
+  }
+  render();
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  }
+})();
+
+</script>
+</body>
+</html>
