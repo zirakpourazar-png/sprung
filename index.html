@@ -109,6 +109,9 @@ textarea.answer{min-height:92px;font-size:18px;resize:vertical}
 .fb.ok{border-color:var(--green);background:var(--ok-bg)}
 .fb.near{border-color:var(--signal);background:var(--near-bg)}
 .fb.bad{border-color:var(--red);background:var(--bad-bg)}
+.fb.info{border-color:var(--blue);background:var(--surface)}
+u.sp{text-decoration-line:underline;text-decoration-style:dotted;text-decoration-thickness:2px;text-underline-offset:4px}
+.sp-note{margin:6px 0 0}
 .diff{font-size:20px;line-height:1.4;margin:6px 0}
 .diff.yours{font-size:16px;color:var(--muted)}
 mark.miss{background:transparent;color:inherit;font-weight:700;text-decoration:underline;text-decoration-color:var(--green);text-decoration-thickness:3px;text-underline-offset:4px}
@@ -689,7 +692,7 @@ var Core = (function () {
     return String(s == null ? '' : s)
       .replace(/[\u2018\u2019\u0060\u00B4]/g, "'")
       .replace(/[\u201C\u201D\u201E\u00AB\u00BB"]/g, ' ')
-      .replace(/\s[\u2013\u2014-]+\s/g, ' ')
+      .replace(/(^|\s)[\u2013\u2014-]+(?=\s|$)/g, ' ')
       .replace(/[.,!?;:\u2026()\u00BF\u00A1]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
@@ -709,44 +712,99 @@ var Core = (function () {
 
   // Spellings that stand in for a German letter when the keyboard lacks it. They count as fully correct.
   var ALT_EXACT = { 'ß': 'ß|ss|SS|b|B|β', 'ä': 'ä|ae', 'Ä': 'Ä|Ae|AE', 'ö': 'ö|oe', 'Ö': 'Ö|Oe|OE', 'ü': 'ü|ue', 'Ü': 'Ü|Ue|UE' };
-  // Umlaut typed without its dots: counted as correct, but the right spelling is pointed out.
-  var ALT_LOOSE = { 'ä': 'ä|ae|a', 'Ä': 'Ä|Ae|AE|A', 'ö': 'ö|oe|o', 'Ö': 'Ö|Oe|OE|O', 'ü': 'ü|ue|u', 'Ü': 'Ü|Ue|UE|U' };
   var reCache = {};
-  function wordRe(t, loose) {
-    var k = (loose ? '1' : '0') + t;
-    if (!reCache[k]) {
+  function wordRe(t) {
+    if (!reCache[t]) {
       var src = '', i, c, alt;
       for (i = 0; i < t.length; i++) {
         c = t.charAt(i);
-        alt = (loose && ALT_LOOSE[c]) || ALT_EXACT[c];
+        alt = ALT_EXACT[c];
         src += alt ? '(?:' + alt + ')' : c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       }
-      reCache[k] = new RegExp('^' + src + '$');
+      reCache[t] = new RegExp('^' + src + '$');
     }
-    return reCache[k];
+    return reCache[t];
   }
-  // a = learner's word, t = target word, both prepped. null when they are different words.
-  function wordMatch(a, t) {
-    if (a === t) return { umlaut: false, caseDiff: false };
+  // Same word, allowing only keyboard stand-ins (ß as B or ss, ä as ae).
+  function exactWord(a, t) { return a === t || (!!a && !!t && wordRe(t).test(a)); }
+
+  // ---------- spelling tolerance ----------
+  // Small slips (a missing or swapped letter, capitals, umlaut dots) count as correct.
+  // A different word or a different grammatical form (der/den, ein/einen, kommst/kommt) does not.
+  function fold(w) { return String(w).toLowerCase().replace(/ß/g, 'ss').replace(/ä/g, 'a').replace(/ö/g, 'o').replace(/ü/g, 'u'); }
+  var GRAMMAR_WORDS = /^(?:d(?:er|ie|as|en|em|es)|dass|[kmds]?ein(?:e[nmrs]?)?|ihr(?:e[nmrs]?)?|unser(?:e[nmrs]?)?|eu(?:e)?r(?:e[nmrs]?)?|dies(?:e[nmrs]?)?|jed(?:e[nmrs]?)?|welch(?:e[nmrs]?)?|ich|du|er|es|sie|wir|mich|dich|sich|uns|euch|ihn|ihm|ihnen|mir|dir)$/;
+  var ENDINGS = ['', 'e', 'n', 'en', 'er', 'es', 'em', 's', 'st', 't', 'et', 'est', 'te', 'ten'];
+  // Edit distance counting a swap of neighbouring letters as one edit.
+  function osa(a, b, max) {
+    var n = a.length, m = b.length, d = [], i, j, cost;
+    if (Math.abs(n - m) > max) return max + 1;
+    for (i = 0; i <= n; i++) { d.push(new Array(m + 1).fill(0)); d[i][0] = i; }
+    for (j = 0; j <= m; j++) d[0][j] = j;
+    for (i = 1; i <= n; i++) {
+      for (j = 1; j <= m; j++) {
+        cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+        if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+      }
+    }
+    return d[n][m];
+  }
+  function isSwap(a, b) {
+    if (a.length !== b.length) return false;
+    var i = 0;
+    while (i < a.length && a[i] === b[i]) i++;
+    return i < a.length - 1 && a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2);
+  }
+  // Words that never take an ending, so a dropped or added last letter is just a slip (bitt/bitte).
+  var NO_ENDINGS = ['bitte', 'danke', 'gerne', 'gern', 'heute', 'gestern', 'hier', 'dort', 'sehr', 'auch', 'noch', 'schon',
+    'nur', 'jetzt', 'dann', 'oder', 'aber', 'leider', 'vielleicht', 'wieder', 'immer', 'oft', 'bald', 'zusammen',
+    'getrennt', 'geradeaus', 'links', 'rechts', 'normalerweise', 'naturlich', 'genau', 'also', 'etwas'];
+  function squeeze(w) { return w.replace(/(.)\1+/g, '$1'); }
+  function spellingOnly(a, t) {
+    var al = fold(a), tl = fold(t);
+    if (al === tl) return true;
+    var swap = isSwap(al, tl);
+    if (GRAMMAR_WORDS.test(al) || GRAMMAR_WORDS.test(tl)) return swap && !GRAMMAR_WORDS.test(al);
+    var as = squeeze(al), ts = squeeze(tl);
+    if (as === ts) return true;                     // double letters: Kafe/Kaffee, Waser/Wasser
+    if (tl.length <= 3) return swap;
+    var max = tl.length >= 8 ? 2 : 1;
+    if (osa(as, ts, max) > max) return false;
+    if (swap || isSwap(as, ts) || NO_ENDINGS.indexOf(tl) >= 0) return true;
+    var p = 0;
+    while (p < as.length && p < ts.length && as[p] === ts[p]) p++;
+    // Only the ending differs and both are inflection endings: a grammar mistake, not a typo.
+    return !(ENDINGS.indexOf(as.slice(p)) >= 0 && ENDINGS.indexOf(ts.slice(p)) >= 0);
+  }
+  // 'exact' | 'spelling' | null
+  function wordStatus(a, t) {
+    if (exactWord(a, t)) return 'exact';
     if (!a || !t) return null;
-    if (wordRe(t, false).test(a)) return { umlaut: false, caseDiff: false };
-    if (wordRe(t, true).test(a)) return { umlaut: true, caseDiff: false };
-    var al = a.toLowerCase(), tl = t.toLowerCase();
-    if (wordRe(tl, false).test(al)) return { umlaut: false, caseDiff: true };
-    if (wordRe(tl, true).test(al)) return { umlaut: true, caseDiff: true };
+    if (exactWord(a.toLowerCase(), t.toLowerCase()) || spellingOnly(a, t)) return 'spelling';
     return null;
   }
-  function sameWord(a, t) { return !!wordMatch(a, t); }
+  function sameWord(a, t) { return a === t || !!wordStatus(a, t); }
+  // Indices of target words that were only misspelled, or null if any word is really different.
   function compareWords(aT, tT) {
     if (aT.length !== tT.length) return null;
-    var res = { umlaut: [], caseDiff: false };
-    for (var i = 0; i < aT.length; i++) {
-      var m = wordMatch(aT[i], tT[i]);
-      if (!m) return null;
-      if (m.umlaut) res.umlaut.push(tT[i]);
-      if (m.caseDiff) res.caseDiff = true;
+    var marks = [], i, s;
+    for (i = 0; i < aT.length; i++) {
+      s = wordStatus(aT[i], tT[i]);
+      if (!s) return null;
+      if (s === 'spelling') marks.push(i);
     }
-    return res;
+    return marks;
+  }
+  function joined(s) { return fold(tokens(prep(s)).join('').replace(/-/g, '')); }
+  // The target split for display, with the misspelled words marked.
+  function markWords(target, marks) {
+    var idx = 0;
+    return rawTokens(target).map(function (raw) {
+      var n = tokens(prep(raw)).length, mark = false, k;
+      for (k = idx; k < idx + n; k++) if (marks.indexOf(k) >= 0) mark = true;
+      idx += n;
+      return { t: raw, mark: mark };
+    });
   }
 
   function lcsTable(a, b, eq) {
@@ -793,26 +851,26 @@ var Core = (function () {
     return null;
   }
 
-  // status: empty | correct | near | wrong. "near" counts as correct and carries a note.
+  // status: empty | correct | near | wrong. "near" = only spelling differs; it counts as correct,
+  // and `words` is the target with the misspelled words marked.
   function checkAnswer(answer, de, alt) {
     var targets = [de].concat(alt || []);
     var aT = tokens(prep(answer));
     if (!aT.length) return { status: 'empty', answer: answer, target: de };
-    var best = null, i, r, rank;
+    var best = null, i, marks;
     for (i = 0; i < targets.length; i++) {
-      r = compareWords(aT, tokens(prep(targets[i])));
-      if (!r) continue;
-      rank = (r.umlaut.length ? 1 : 0) + (r.caseDiff ? 2 : 0);
-      if (!best || rank < best.rank) best = { rank: rank, r: r, target: targets[i] };
-      if (!rank) break;
+      marks = compareWords(aT, tokens(prep(targets[i])));
+      if (marks && (!best || marks.length < best.marks.length)) best = { marks: marks, target: targets[i] };
+      if (best && !best.marks.length) break;
     }
-    if (best && !best.rank) return { status: 'correct', answer: answer, target: best.target };
-    if (best) {
-      var notes = [];
-      if (best.r.umlaut.length) notes.push('Yazımı: ' + best.r.umlaut.join(', ') + '. ä, ö, ü yazamıyorsan ae, oe, ue yaz; tam doğru sayılır.');
-      if (best.r.caseDiff) notes.push('Büyük/küçük harf: Almancada cümle başı ve bütün isimler büyük harfle yazılır.');
-      return { status: 'near', answer: answer, target: best.target, note: notes.join(' ') };
+    if (!best) {
+      var aj = joined(answer);
+      for (i = 0; i < targets.length; i++) {
+        if (aj && aj === joined(targets[i])) { best = { marks: [], target: targets[i], spacing: true }; break; }
+      }
     }
+    if (best && !best.marks.length && !best.spacing) return { status: 'correct', answer: answer, target: best.target };
+    if (best) return { status: 'near', answer: answer, target: best.target, words: markWords(best.target, best.marks) };
     var top = targets[0], topScore = -1;
     for (i = 0; i < targets.length; i++) {
       var tT = tokens(prep(targets[i]));
@@ -861,7 +919,7 @@ var Core = (function () {
     ERROR_TAGS: ERROR_TAGS, INTERVALS: INTERVALS,
     todayStr: todayStr, addDays: addDays, daysBetween: daysBetween,
     numToDe: numToDe, digitsToWords: digitsToWords, clean: clean, translit: translit, tokens: tokens, fixKeyboard: fixKeyboard,
-    checkAnswer: checkAnswer, diffTokens: diffTokens, suggestTag: suggestTag,
+    checkAnswer: checkAnswer, diffTokens: diffTokens, suggestTag: suggestTag, spellingOnly: spellingOnly, markWords: markWords,
     schedule: schedule, placementLevel: placementLevel, streak: streak
   };
 })();
@@ -944,11 +1002,14 @@ if (typeof module !== 'undefined') module.exports = Core;
     try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
     catch (e) { toast('Kaydedilemedi. Depolama dolu olabilir; Ayarlar’dan yedeği kopyala.'); }
   }
-  // v1.1, runs once: answers that v1 marked wrong only because of the keyboard (ß typed as B or ss,
-  // Turkish İ, ä typed as ae) leave the error notebook, and the card's forget count is corrected.
-  function migrateKeyboardFix() {
+  // Runs once per checker change: answers an older version marked wrong that now count as correct
+  // (keyboard spellings in v1.1, small misspellings in v1.2) leave the error notebook,
+  // and the card's forget count is corrected.
+  var RECHECKS = ['keyboard', 'spelling'];
+  function recheckErrors() {
     state.fixes = state.fixes || {};
-    if (state.fixes.keyboard) return 0;
+    var todo = RECHECKS.filter(function (k) { return !state.fixes[k]; });
+    if (!todo.length) return 0;
     var cards = vals(state.cards), removed = 0;
     state.errors = state.errors.filter(function (e) {
       var card = null;
@@ -961,7 +1022,7 @@ if (typeof module !== 'undefined') module.exports = Core;
       if (card && card.lapses > 0) card.lapses--;
       return false;
     });
-    state.fixes.keyboard = true;
+    todo.forEach(function (k) { state.fixes[k] = true; });
     save();
     return removed;
   }
@@ -1253,14 +1314,27 @@ if (typeof module !== 'undefined') module.exports = Core;
       return '<div class="fb ok" role="status"><strong>Doğru.</strong> <span lang="de">' + esc(r.target) + '</span>' + say + '</div>';
     }
     if (r.status === 'near') {
-      return '<div class="fb near" role="status"><strong>Doğru sayıldı.</strong> ' + esc(r.note) +
-        '<p class="diff" lang="de">' + esc(r.target) + '</p>' + say + '</div>';
+      var words = r.words || [{ t: r.target, mark: false }];
+      var marked = words.some(function (w) { return w.mark; });
+      return '<div class="fb ok" role="status"><strong>Doğru.</strong> <span lang="de">' +
+        words.map(function (w) { return w.mark ? '<u class="sp">' + esc(w.t) + '</u>' : esc(w.t); }).join(' ') + '</span>' + say +
+        (marked ? '<p class="meta sp-note">Altı çizili kelimenin yazımı biraz farklıydı.</p>' : '') + '</div>';
+    }
+    if (r.status === 'shown') {
+      return '<div class="fb info" role="status"><strong>Cevap:</strong> <span lang="de">' + esc(r.target) + '</span>' + say +
+        '<p class="meta sp-note">Dinle ve sesli tekrar et.</p></div>';
     }
     var d = C.diffTokens(r.answer, r.target);
     return '<div class="fb bad" role="status"><strong>Doğrusu:</strong>' +
       '<p class="diff" lang="de">' + d.b.map(function (x) { return x.ok ? esc(x.t) : '<mark class="miss">' + esc(x.t) + '</mark>'; }).join(' ') + '</p>' +
       '<p class="diff yours" lang="de">Senin: ' + (d.a.length ? d.a.map(function (x) { return x.ok ? esc(x.t) : '<del class="extra">' + esc(x.t) + '</del>'; }).join(' ') : '–') + '</p>' +
       say + '</div>';
+  }
+  // Check button plus the two ways out when stuck: see the answer, or move on.
+  function checkButtons(prefix) {
+    return '<button class="btn btn-primary wide" data-primary data-act="' + prefix + '-check">Kontrol et</button>' +
+      '<div class="row two"><button class="btn btn-quiet" data-act="' + prefix + '-show">Cevabı göster</button>' +
+      '<button class="btn btn-quiet" data-act="' + prefix + '-skip">Atla</button></div>';
   }
   function tagPicker(sel) {
     return '<div class="tags" role="group" aria-label="Hata türü"><p class="meta">Hata türü (hata defterine yazılır):</p>' +
@@ -1455,7 +1529,7 @@ if (typeof module !== 'undefined') module.exports = Core;
     if (!L) {
       if (!chunks.length) { if (!session(state.programDay).blocks.learn) markDone('learn'); return learnDoneView(c, null); }
       if (session(state.programDay).blocks.learn) return learnDoneView(c, null);
-      L = ui.tmp.learn = { phase: 'intro', idx: 0, known: {}, queue: [], first: {}, check: null, given: '', practice: false };
+      L = ui.tmp.learn = { phase: 'intro', idx: 0, known: {}, queue: [], first: {}, retried: {}, check: null, given: '', practice: false };
     }
     if (L.phase === 'intro') {
       return (state.programDay === 1 && c.grammar ? grammarCard(c.grammar, 'Bugünün kalıbı') : '') +
@@ -1476,7 +1550,7 @@ if (typeof module !== 'undefined') module.exports = Core;
       return '<p class="meta">Aynı gün hatırlama: ' + L.queue.length + ' kaldı</p>' +
         '<p class="tr big">' + esc(item.tr) + '</p>' + answerInput(!!L.check, L.given) +
         (L.check ? feedback(L.check) + '<button class="btn btn-primary wide" data-primary data-act="learn-recall-next">Sonraki</button>'
-          : '<button class="btn btn-primary wide" data-primary data-act="learn-check">Kontrol et</button>');
+          : checkButtons('learn'));
     }
     return learnDoneView(c, L);
   }
@@ -1514,15 +1588,39 @@ if (typeof module !== 'undefined') module.exports = Core;
     var r = C.checkAnswer(v, item.de, item.alt);
     if (r.status === 'empty') { toast('Önce Almancasını yaz.'); return; }
     L.check = r; L.given = v;
-    if (L.first[item.id] === undefined) { L.first[item.id] = r.status !== 'wrong'; if (!L.practice) bump('recall', r.status !== 'wrong'); }
+    learnFirst(L, item, r.status !== 'wrong');
     render();
     TTS.speak(r.target);
   }
+  function learnFirst(L, item, ok) {
+    if (L.first[item.id] !== undefined) return;
+    L.first[item.id] = ok;
+    if (!L.practice) bump('recall', ok);
+  }
+  function learnShow() {
+    var c = getDay(state.programDay), L = ui.tmp.learn; if (!L || L.check) return;
+    var item = findChunk(c, L.queue[0]);
+    learnFirst(L, item, false);
+    L.check = { status: 'shown', target: item.de, answer: '' }; L.given = '';
+    render();
+    TTS.speak(item.de);
+  }
+  // Leaves today's round; the card still comes back tomorrow like every new phrase.
+  function learnSkip() {
+    var c = getDay(state.programDay), L = ui.tmp.learn; if (!L || L.check) return;
+    learnFirst(L, findChunk(c, L.queue[0]), false);
+    L.queue.shift();
+    learnAfter(L);
+  }
+  // A missed phrase is asked once more at the end of the round, never more.
   function learnRecallNext() {
     var L = ui.tmp.learn; if (!L || !L.check) return;
     var id = L.queue.shift();
-    if (L.check.status === 'wrong') L.queue.push(id);
+    if ((L.check.status === 'wrong' || L.check.status === 'shown') && !L.retried[id]) { L.retried[id] = true; L.queue.push(id); }
     L.check = null; L.given = '';
+    learnAfter(L);
+  }
+  function learnAfter(L) {
     if (!L.queue.length) { learnFinish(); return; }
     ui.tmp.focus = true;
     render();
@@ -1541,7 +1639,7 @@ if (typeof module !== 'undefined') module.exports = Core;
   }
   function learnAgain() {
     var c = getDay(state.programDay);
-    ui.tmp.learn = { phase: 'meet', idx: 0, known: {}, queue: [], first: {}, check: null, given: '', practice: true };
+    ui.tmp.learn = { phase: 'meet', idx: 0, known: {}, queue: [], first: {}, retried: {}, check: null, given: '', practice: true };
     render();
     TTS.speak(c.chunks[0].de);
   }
@@ -1626,7 +1724,7 @@ if (typeof module !== 'undefined') module.exports = Core;
         answerInput(!!P.check, P.given) +
         (P.check ? feedback(P.check) + (P.check.status === 'wrong' ? tagPicker(P.tag) : '') +
           '<button class="btn btn-primary wide" data-primary data-act="pr-next">Sonraki</button>'
-          : '<button class="btn btn-primary wide" data-primary data-act="pr-check">Kontrol et</button>');
+          : checkButtons('pr'));
     }
     var drafts = ui.tmp.drafts || {};
     var qs = (c.questions || []).map(function (q) {
@@ -1656,14 +1754,35 @@ if (typeof module !== 'undefined') module.exports = Core;
     render();
     TTS.speak(r.target);
   }
+  function prShow() {
+    var c = getDay(state.programDay), P = ui.tmp.pr; if (!P || P.check) return;
+    var it = c.produce[P.idx];
+    P.check = { status: 'shown', target: it.de, answer: '' }; P.given = ''; P.tag = null;
+    bump('produce', false);
+    save();
+    render();
+    TTS.speak(it.de);
+  }
+  // Shown or skipped sentences become a card for tomorrow; they are not errors in the notebook.
+  function prSkip() {
+    var c = getDay(state.programDay), P = ui.tmp.pr; if (!P || P.check) return;
+    var it = c.produce[P.idx];
+    bump('produce', false);
+    addCard('pr-' + it.id, it.tr, it.de, it.alt, 'produce', 1, 1);
+    save();
+    prAdvance(c, P);
+  }
   function prNext() {
     var c = getDay(state.programDay), P = ui.tmp.pr; if (!P || !P.check) return;
     var it = c.produce[P.idx];
-    if (P.check.status === 'wrong') {
-      logError(it.tr, it.de, P.given, P.tag);
+    if (P.check.status === 'wrong') logError(it.tr, it.de, P.given, P.tag);
+    if (P.check.status === 'wrong' || P.check.status === 'shown') {
       addCard('pr-' + it.id, it.tr, it.de, it.alt, 'produce', 1, 1);
       save();
     }
+    prAdvance(c, P);
+  }
+  function prAdvance(c, P) {
     P.idx++; P.check = null; P.given = ''; P.tag = null;
     if (P.idx >= c.produce.length) P.part = 'B'; else ui.tmp.focus = true;
     render();
@@ -1709,12 +1828,14 @@ if (typeof module !== 'undefined') module.exports = Core;
     }
     if (R.idx >= R.queue.length) {
       if (isBlock && !session(state.programDay).blocks.review) markDone('review');
-      return '<section class="result"><p class="level">' + R.ok + ' / ' + R.n + '</p><p>Tekrar bitti. Yanlışlar yarın yeniden gelecek.</p>' + back + '</section>';
+      return '<section class="result"><p class="level">' + R.ok + ' / ' + R.n + '</p><p>Tekrar bitti. Bilemediklerin' +
+        (R.skipped ? ' ve atladığın ' + R.skipped + ' kart' : '') + ' yarın yeniden gelecek.</p>' + back + '</section>';
     }
     var card = state.cards[R.queue[R.idx]];
     var h = '<p class="meta">Kart ' + (R.idx + 1) + ' / ' + R.queue.length + '</p><p class="tr big">' + esc(card.tr) + '</p>' + answerInput(!!R.check, R.given);
-    if (!R.check) return h + '<button class="btn btn-primary wide" data-primary data-act="rv-check">Kontrol et</button>';
+    if (!R.check) return h + checkButtons('rv');
     h += feedback(R.check);
+    if (R.check.status === 'shown') return h + '<button class="btn btn-primary wide" data-primary data-act="rv-grade" data-g="wrong">Sonraki</button>';
     if (R.check.status === 'wrong') return h + tagPicker(R.tag) + '<button class="btn btn-primary wide" data-primary data-act="rv-grade" data-g="wrong">Sonraki</button>';
     return h + '<div class="row two"><button class="btn" data-act="rv-grade" data-g="hard">Zorlandım</button>' +
       '<button class="btn btn-primary" data-primary data-act="rv-grade" data-g="easy">Kolaydı</button></div>';
@@ -1728,10 +1849,28 @@ if (typeof module !== 'undefined') module.exports = Core;
     render();
     TTS.speak(r.target);
   }
+  function rvShow() {
+    var R = ui.tmp.rev; if (!R || R.check || R.idx >= R.queue.length) return;
+    var card = state.cards[R.queue[R.idx]];
+    R.check = { status: 'shown', target: card.de, answer: '' }; R.given = ''; R.tag = null;
+    render();
+    TTS.speak(card.de);
+  }
+  // Postpones the card to tomorrow without counting it as forgotten.
+  function rvSkip() {
+    var R = ui.tmp.rev; if (!R || R.check || R.idx >= R.queue.length) return;
+    var card = state.cards[R.queue[R.idx]];
+    card.due = C.addDays(today(), 1);
+    save();
+    R.skipped = (R.skipped || 0) + 1;
+    R.idx++;
+    ui.tmp.focus = R.idx < R.queue.length;
+    render();
+  }
   function rvGrade(g) {
     var R = ui.tmp.rev; if (!R || !R.check) return;
     var card = state.cards[R.queue[R.idx]], ok = g !== 'wrong';
-    if (!ok) logError(card.tr, card.de, R.given, R.tag);
+    if (!ok && R.check.status !== 'shown') logError(card.tr, card.de, R.given, R.tag);
     C.schedule(card, g, today());
     R.n++; if (ok) R.ok++;
     bump('review', ok);
@@ -1836,8 +1975,8 @@ if (typeof module !== 'undefined') module.exports = Core;
       '<div class="row"><button class="btn" data-act="say" data-text="Guten Tag! Das ist ein kurzer Test.">Sesi test et</button>' +
       '<button class="btn' + (micOn ? ' rec-on' : '') + '" data-act="rec" data-key="mic-test">' + (micOn ? 'Durdur' : 'Mikrofonu test et') + '</button>' +
       (micHas ? '<button class="btn" data-act="play-rec" data-key="mic-test">Test kaydını dinle</button>' : '') + '</div>' +
-      '<h2 class="sub">Klavye</h2><p class="hint">ß yazamıyorsan ss ya da B yaz; ä, ö, ü yazamıyorsan ae, oe, ue yaz. Hepsi tam doğru sayılır. ' +
-      'Noktasız yazım (a, o, u) da doğru sayılır, ama doğru yazımı gösterilir.</p>' +
+      '<h2 class="sub">Yazım</h2><p class="hint">Küçük yazım hataları, büyük/küçük harf ve ä, ö, ü noktaları doğru sayılır; ' +
+      'doğru yazılışın altı çizilir. ß için ss ya da B, ä için ae yazabilirsin. Artikel ve fiil eki (ein/einen, kommst/kommt) hâlâ kontrol edilir.</p>' +
       '<h2 class="sub">Dikte</h2><p class="hint">Cevapları sesli vermek için iPhone’a Almanca klavye ekle: Ayarlar > Genel > Klavye > Klavyeler > Yeni Klavye Ekle > Almanca. ' +
       'Cevap kutusunda Almanca klavyeye geçip mikrofon tuşuna bas. Dikte seni yanlış yazıyorsa o kelimenin telaffuzuna bak. Menü adları iOS sürümüne göre değişebilir.</p>' +
       '<h2 class="sub">Claude ile döngü</h2><p class="hint">Haftada bir dökümü kopyala ve Claude’a yapıştır. Gelen içerik paketini aşağıya ekle.</p>' +
@@ -1850,7 +1989,7 @@ if (typeof module !== 'undefined') module.exports = Core;
       '<label class="field"><span>Yedeği geri yükle</span><textarea id="restore" class="answer" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea></label>' +
       '<button class="btn wide" data-act="restore">Yedeği geri yükle</button>' +
       '<h2 class="sub">Sıfırla</h2><button class="btn btn-danger wide" data-act="reset">Tüm verileri sil</button>' +
-      '<p class="meta" style="margin-top:18px">Sprung v1.1. Veriler yalnızca bu cihazda.</p>';
+      '<p class="meta" style="margin-top:18px">Sprung v1.2. Veriler yalnızca bu cihazda.</p>';
   }
 
   function buildDump() {
@@ -1940,7 +2079,7 @@ if (typeof module !== 'undefined') module.exports = Core;
       var s = JSON.parse(raw);
       if (!s || s.v !== 1 || typeof s.cards !== 'object') throw new Error('bad');
       state = hydrate(s);
-      migrateKeyboardFix();
+      recheckErrors();
       save();
       go('today');
       toast('Yedek geri yüklendi.');
@@ -1975,6 +2114,8 @@ if (typeof module !== 'undefined') module.exports = Core;
     'learn-next': function () { learnAdvance(false); },
     'learn-known': function () { learnAdvance(true); },
     'learn-check': learnCheck,
+    'learn-show': learnShow,
+    'learn-skip': learnSkip,
     'learn-recall-next': learnRecallNext,
     'learn-again': learnAgain,
     'play-all': playAll,
@@ -1984,6 +2125,8 @@ if (typeof module !== 'undefined') module.exports = Core;
     'rec': function (el) { recToggle(el.getAttribute('data-key')); },
     'play-rec': function (el) { AudioCache.play(el.getAttribute('data-key')); },
     'pr-check': prCheck,
+    'pr-show': prShow,
+    'pr-skip': prSkip,
     'pr-next': prNext,
     'qa-save': function (el) { qaSave(el.getAttribute('data-id')); },
     'tag': function (el) {
@@ -1991,6 +2134,8 @@ if (typeof module !== 'undefined') module.exports = Core;
       var i = Number(el.getAttribute('data-i')); T.tag = T.tag === i ? null : i; render();
     },
     'rv-check': rvCheck,
+    'rv-show': rvShow,
+    'rv-skip': rvSkip,
     'rv-grade': function (el) { rvGrade(el.getAttribute('data-g')); },
     'copy-dump': function () { copyText(buildDump(), 'Döküm kopyalandı. Claude’a yapıştır.'); },
     'import-pack': importPack,
@@ -2033,9 +2178,9 @@ if (typeof module !== 'undefined') module.exports = Core;
     if (window.speechSynthesis.addEventListener) window.speechSynthesis.addEventListener('voiceschanged', onVoices);
     else window.speechSynthesis.onvoiceschanged = onVoices;
   }
-  var cleared = migrateKeyboardFix();
+  var cleared = recheckErrors();
   render();
-  if (cleared) toast('Klavye yüzünden yanlış sayılan ' + cleared + ' cevap hata defterinden silindi.');
+  if (cleared) toast('Yazım yüzünden yanlış sayılan ' + cleared + ' cevap hata defterinden silindi.');
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
     navigator.serviceWorker.register('sw.js').catch(function () {});
   }
